@@ -2,6 +2,17 @@ library flutter_responsive;
 
 import 'package:flutter/widgets.dart';
 
+class ResponsiveBreakpoints {
+  static final ResponsiveBreakpoints _singleton =
+      ResponsiveBreakpoints._internal();
+
+  factory ResponsiveBreakpoints() {
+    return _singleton;
+  }
+
+  ResponsiveBreakpoints._internal();
+}
+
 /// A Widget that chooses a widget to display based on the screen size.
 ///
 /// The returned Widget is chosen based on the greatest provided breakpoint
@@ -40,9 +51,9 @@ import 'package:flutter/widgets.dart';
 /// ```
 class ResponsiveLayout extends BaseResponsiveLayout {
   /// The screen widths associated with the named paramater sizings.
-  final List<int> breakpoints = [0, 576, 768, 992, 1200, 1400];
+  static final List<int> breakpoints = [0, 576, 768, 992, 1200, 1400];
 
-  /// Creates a Widget that chooses another widget to display based on the
+  /// Creates a Widget that chooses another Widget to display based on the
   /// screen size.
   ///
   /// The xs breakpoint Widget is required.
@@ -57,11 +68,12 @@ class ResponsiveLayout extends BaseResponsiveLayout {
     Key? key,
   }) : super(
           [xs, sm, md, lg, xl, xxl],
+          breakpoints,
           custom: custom,
           key: key,
         );
 
-  /// Creates a Widget that chooses another widget to display based on the
+  /// Creates a Widget that chooses another Widget to display based on the
   /// screen size using a WidgetBuilder.
   ///
   /// The xs breakpoint WidgetBuilder is required.
@@ -76,56 +88,77 @@ class ResponsiveLayout extends BaseResponsiveLayout {
     Key? key,
   }) : super.builder(
           [xs, sm, md, lg, xl, xxl],
+          breakpoints,
           custom: custom,
           key: key,
         );
+
+  static T value<T>(
+    BuildContext context, {
+    required T xs,
+    T? sm,
+    T? md,
+    T? lg,
+    T? xl,
+    T? xxl,
+    Map<int, T>? custom,
+  }) {
+    return _choose(
+      breakpoints,
+      [xs, sm, md, lg, xl, xxl],
+      MediaQuery.of(context).size.width,
+    );
+  }
 }
 
+/// The base responsive layout which allows any number of named breakpoints
+/// and sizes.
 abstract class BaseResponsiveLayout extends StatelessWidget {
-  final List<int> breakpoints = [0];
+  final List<int> _breakpoints;
 
   final List<WidgetBuilder?> _widgets;
 
   BaseResponsiveLayout(
-    List<Widget?> widgets, {
+    List<Widget?> widgets,
+    List<int> breakpoints, {
     Map<int, Widget>? custom,
     Key? key,
-  })  : _widgets = _widgetToBuilder(widgets),
+  })  : _breakpoints = List.from(breakpoints),
+        _widgets = _widgetToBuilder(widgets),
         super(key: key) {
     _checkConditions();
     _combineCustomBreakpoints(custom, isWidget: true);
   }
 
   BaseResponsiveLayout.builder(
-    List<WidgetBuilder?> widgets, {
+    List<WidgetBuilder?> widgets,
+    List<int> breakpoints, {
     Map<int, WidgetBuilder>? custom,
     Key? key,
-  })  : _widgets = widgets,
+  })  : _breakpoints = List.from(breakpoints),
+        _widgets = widgets,
         super(key: key) {
     _checkConditions();
     _combineCustomBreakpoints(custom);
   }
 
+  /// Checks conditions that should be met by an extending class.
   _checkConditions() {
-    if (breakpoints.first != 0) {
+    if (_breakpoints.first != 0) {
       throw ArgumentError('The smallest breakpoint width must be 0.');
     }
     if (_widgets.first == null) {
       throw ArgumentError('The smallest breakpoint widget cannot be null.');
     }
-    if (_widgets.length != breakpoints.length) {
-      throw ArgumentError(
-          'The list of widgets and breakpoint config must be the same length.');
-    }
   }
 
+  /// Mixes in the custom breakpoint with ordering
   _combineCustomBreakpoints(dynamic custom, {bool isWidget = false}) {
-    // Splice the custom breakpoint sizes and widgets in with ordering
     if (custom != null) {
       custom.keys.forEach((size) {
-        for (int i = 0; i < breakpoints.length; i++) {
-          if (size < breakpoints[i]) {
-            breakpoints.insert(i, size);
+        for (int i = 0; i < _breakpoints.length; i++) {
+          if (size < _breakpoints[i]) {
+            _breakpoints.insert(i, size);
             _widgets.insert(i,
                 isWidget ? (BuildContext _) => custom![size]! : custom[size]);
             break;
@@ -138,13 +171,14 @@ abstract class BaseResponsiveLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _choose(
-      breakpoints,
+      _breakpoints,
       _widgets,
       MediaQuery.of(context).size.width,
     )(context);
   }
 }
 
+/// Converts a list of Widgets to a list of WidgetBuilders
 List<WidgetBuilder?> _widgetToBuilder(List<Widget?> widgets) {
   final List<WidgetBuilder?> result = [];
   widgets.forEach(
@@ -152,6 +186,8 @@ List<WidgetBuilder?> _widgetToBuilder(List<Widget?> widgets) {
   return result;
 }
 
+/// Chooses a value from [values] based on which of [sizes] that [width]
+/// satisfies
 T _choose<T>(List<int> sizes, List<T?> values, double width) {
   for (int i = sizes.length - 1; i >= 0; i--) {
     if (width >= sizes[i] && values[i] != null) {
