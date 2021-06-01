@@ -1,165 +1,164 @@
 library flutter_responsive;
 
-import 'dart:collection';
-
 import 'package:flutter/widgets.dart';
 
-class ResponsiveBuilder extends StatelessWidget {
-  /// Default breakpoint names and sizes.
-  static Map<String, int> _config = {
-    'xs': 0,
-    'sm': 576,
-    'md': 768,
-    'lg': 992,
-    'xl': 1200,
-    'xxl': 1400,
-  };
+/// A Widget that chooses a widget to display based on the screen size.
+///
+/// The returned Widget is chosen based on the greatest provided breakpoint
+/// that satisfies `current screen width > breakpoint`
+///
+/// The default breakpoints are:
+/// * xs:  < 576
+/// * sm:  >= 578
+/// * md:  >= 768
+/// * lg:  >= 992
+/// * xl:  >= 1200
+/// * xxl: >= 1400
+///
+/// A Text Widget reading '>= 768' will be displayed by the following example
+/// if the screen width is 800px. If the width was 1150px the result would still
+/// be be the same as no 'lg' breakpoint was provided and it defaults to the
+/// next smallest. One-off sizes can be provided using a [custom] mapping.
+/// ```
+/// ResponsiveLayout(
+///   sm: Text('>= 576'),
+///   md: Text('>= 768'),
+///   xl: Text('>= 1200'),
+///   custom: { 1600: Text('>= 1600') },
+/// );
+/// ```
+///
+/// WidgetBuilders can be used instead of Widgets to avoid building the Widget
+/// prior to [ResponsiveLayout] deciding which to display.
+/// ```
+/// ResponsiveLayout.builder(
+///   sm: (context) => Text('>= 576'),
+///   md: (context) => Text('>= 768'),
+///   xl: (context) => Text('>= 1200'),
+///   custom: { 1600: (context) => Text('>= 1600') },
+/// );
+/// ```
+class ResponsiveLayout extends BaseResponsiveLayout {
+  /// The screen widths associated with the named paramater sizings.
+  final List<int> breakpoints = [0, 576, 768, 992, 1200, 1400];
 
-  /// Creates a new default set of [breakpoints] names and sizes.
+  /// Creates a Widget that chooses another widget to display based on the
+  /// screen size.
   ///
-  /// A breakpoint with a width of `0` *must* be provided.
-  static setBreakpoints(Map<String, int> breakpoints) {
-    _checkSmallestBreakpoint(breakpoints);
-    _config = breakpoints;
-  }
-
-  /// Overrides existing [breakpoints] names and sizes, adding new ones if the
-  /// string names do not match.
-  static patchBreakpoints(Map<String, int> breakpoints) {
-    _config.addAll(breakpoints);
-    // They could override the 0 sized one with a new value, so check afterward
-    _checkSmallestBreakpoint(_config);
-  }
-
-  /// The breakpoints used for this instance. All names are mapped to integer
-  /// sizes and ordered for simplification.
-  late final SplayTreeMap<int, Widget> _breakpoints;
-
-  /// Creates a Widget that chooses one of [breakpoints] widgets to display
-  /// based on the current width of the screen.
-  ///
-  /// Throws an [ArgumentError] if a string name in [breakpoints] does not exist
-  /// in the default set of breakpoints.
-  /// Throws an [ArgumentError] if a key in [breakpoints] is not a String or
-  /// int.
-  ///
-  /// The returned Widget is chosen based on the greatest provided size of a key
-  /// in [breakpoints] that satisfies `current screen width > size`
-  ///
-  /// The default breakpoints are:
-  /// * xs:  < 576
-  /// * sm:  >= 578
-  /// * md:  >= 768
-  /// * lg:  >= 992
-  /// * xl:  >= 1200
-  /// * xxl: >= 1400
-  ///
-  /// A value of `Text('>= 768')` will be returned by the following call when
-  /// the screen width is 800px. If the width was 1150px the result would still
-  /// be `Text('>= 768')`, as no 'lg' key was provided and it defaults to the
-  /// next smallest. One-off sizes can be provided as integer keys.
-  /// ```
-  /// ResponsiveBuilder(
-  ///   breakpoints: {
-  ///     'sm': Text('>= 576'),
-  ///     'md': Text('>= 768'),
-  ///     'xl': Text('>= 1200'),
-  ///     1600: Text('>= 1600'),
-  ///   },
-  /// );
-  /// ```
-  ///
-  /// To modify the default set of breakpoint names and sizes, use
-  /// [setBreakpoints] or [patchBreakpoints]
-  ResponsiveBuilder({
-    required Map<dynamic, Widget> breakpoints,
+  /// The xs breakpoint Widget is required.
+  ResponsiveLayout({
+    required Widget xs,
+    Widget? sm,
+    Widget? md,
+    Widget? lg,
+    Widget? xl,
+    Widget? xxl,
+    Map<int, Widget>? custom,
     Key? key,
-  }) : super(key: key) {
-    _checkSmallestBreakpoint(breakpoints);
-    this._breakpoints = _mapToSplayMap<Widget>(breakpoints);
+  }) : super(
+          [xs, sm, md, lg, xl, xxl],
+          custom: custom,
+          key: key,
+        );
+
+  /// Creates a Widget that chooses another widget to display based on the
+  /// screen size using a WidgetBuilder.
+  ///
+  /// The xs breakpoint WidgetBuilder is required.
+  ResponsiveLayout.builder({
+    required WidgetBuilder xs,
+    WidgetBuilder? sm,
+    WidgetBuilder? md,
+    WidgetBuilder? lg,
+    WidgetBuilder? xl,
+    WidgetBuilder? xxl,
+    Map<int, WidgetBuilder>? custom,
+    Key? key,
+  }) : super.builder(
+          [xs, sm, md, lg, xl, xxl],
+          custom: custom,
+          key: key,
+        );
+}
+
+abstract class BaseResponsiveLayout extends StatelessWidget {
+  final List<int> breakpoints = [0];
+
+  final List<WidgetBuilder?> _widgets;
+
+  BaseResponsiveLayout(
+    List<Widget?> widgets, {
+    Map<int, Widget>? custom,
+    Key? key,
+  })  : _widgets = _widgetToBuilder(widgets),
+        super(key: key) {
+    _checkConditions();
+    _combineCustomBreakpoints(custom, isWidget: true);
+  }
+
+  BaseResponsiveLayout.builder(
+    List<WidgetBuilder?> widgets, {
+    Map<int, WidgetBuilder>? custom,
+    Key? key,
+  })  : _widgets = widgets,
+        super(key: key) {
+    _checkConditions();
+    _combineCustomBreakpoints(custom);
+  }
+
+  _checkConditions() {
+    if (breakpoints.first != 0) {
+      throw ArgumentError('The smallest breakpoint width must be 0.');
+    }
+    if (_widgets.first == null) {
+      throw ArgumentError('The smallest breakpoint widget cannot be null.');
+    }
+    if (_widgets.length != breakpoints.length) {
+      throw ArgumentError(
+          'The list of widgets and breakpoint config must be the same length.');
+    }
+  }
+
+  _combineCustomBreakpoints(dynamic custom, {bool isWidget = false}) {
+    // Splice the custom breakpoint sizes and widgets in with ordering
+    if (custom != null) {
+      custom.keys.forEach((size) {
+        for (int i = 0; i < breakpoints.length; i++) {
+          if (size < breakpoints[i]) {
+            breakpoints.insert(i, size);
+            _widgets.insert(i,
+                isWidget ? (BuildContext _) => custom![size]! : custom[size]);
+            break;
+          }
+        }
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final double width = MediaQuery.of(context).size.width;
-
-    return _chooseBySize(width, _breakpoints);
+    return _choose(
+      breakpoints,
+      _widgets,
+      MediaQuery.of(context).size.width,
+    )(context);
   }
 }
 
-/// Returns a value of type [T] from the provided [breakpoints] based on the
-/// current screen width.
-///
-/// Throws an [ArgumentError] if a string name in [breakpoints] does not exist
-/// in the default set of breakpoints.
-/// Throws an [ArgumentError] if a key in [breakpoints] is not a String or
-/// int.
-///
-/// The returned [T] is chosen based on the greatest provided size of a key
-/// in [breakpoints] that satisfies `current screen width > size`
-///
-/// A value of `Colors.red` will be returned by the following call when the
-/// screen width is 800px. If the width was 1150px the result would still be
-/// `Colors.red`, as no 'lg' key was provided and it defaults to the next
-/// smallest. One-off sizes can be provided as integer keys.
-/// ```
-/// responsiveValue(context, {
-///   'sm': Colors.green,
-///   'md': Colors.red,
-///   'xl': Colors.blue,
-///   1600: Colors.purple,
-/// });
-/// ```
-///
-/// To modify the default set of breakpoint names and sizes, use
-/// [setBreakpoints] or [patchBreakpoints]
-T responsiveValue<T>(BuildContext context, Map<dynamic, T> breakpoints) {
-  _checkSmallestBreakpoint(breakpoints);
-  return _chooseBySize(
-      MediaQuery.of(context).size.width, _mapToSplayMap(breakpoints));
+List<WidgetBuilder?> _widgetToBuilder(List<Widget?> widgets) {
+  final List<WidgetBuilder?> result = [];
+  widgets.forEach(
+      (widget) => result.add(widget == null ? null : (context) => widget));
+  return result;
 }
 
-/// Throws an error if [breakpoints] does not contain a 0 size breakpoint.
-void _checkSmallestBreakpoint<T>(Map<dynamic, T> breakpoints) {
-  breakpoints.keys.firstWhere((size) => _sizeToInt(size) == 0, orElse: () {
-    throw ArgumentError('There must be a breakpoint with a size value of 0');
-  });
-}
-
-/// Converts a map of breakpoint name/size keys to a SplayTreeMap of the same
-/// values but with all keys set to a corresponding size.
-SplayTreeMap<int, T> _mapToSplayMap<T>(Map<dynamic, T> map) {
-  return SplayTreeMap.from(
-    map.map((size, value) => MapEntry(_sizeToInt(size), value)),
-    (a, b) {
-      return _sizeToInt(a) - _sizeToInt(b);
-    },
-  );
-}
-
-/// Chooses a [T] in breakpoints mapping based on the [width].
-T _chooseBySize<T>(double width, SplayTreeMap<int, T> breakpoints) {
-  List<int> bp = breakpoints.keys.map((size) => _sizeToInt(size)).toList();
-
-  for (int i = bp.length - 1; i >= 0; i--) {
-    if (width >= bp[i]) {
-      return breakpoints.values.elementAt(i);
+T _choose<T>(List<int> sizes, List<T?> values, double width) {
+  for (int i = sizes.length - 1; i >= 0; i--) {
+    if (width >= sizes[i] && values[i] != null) {
+      // It's been checked above that the value is non-null
+      return values[i]!;
     }
   }
-  return breakpoints.values.first;
-}
-
-/// Converts size to an int value using the default breakpoints name to size
-/// mappings.
-int _sizeToInt(dynamic size) {
-  if (size is String) {
-    return ResponsiveBuilder._config[size] ??
-        (throw ArgumentError('Breakpoint named \'$size\' not found'));
-  } else if (size is int) {
-    return size;
-  } else {
-    throw ArgumentError(
-      '${size.runtimeType} $size is not a breakpoint. Must be type String or int',
-    );
-  }
+  // it is enforced that the smallest breakpoint Widget/value must be provided
+  return values[0]!;
 }
