@@ -103,31 +103,45 @@ class ResponsiveLayout extends BaseResponsiveLayout {
     T? xxl,
     Map<int, T>? custom,
   }) {
-    return _choose(
-      breakpoints,
+    return BaseResponsiveLayout.value(
+      context,
       [xs, sm, md, lg, xl, xxl],
-      MediaQuery.of(context).size.width,
+      breakpoints,
+      custom: custom,
     );
   }
+}
+
+class _BreakpointMap<T> {
+  final List<int> breakpoints;
+  final List<T?> values;
+
+  _BreakpointMap(this.breakpoints, this.values);
 }
 
 /// The base responsive layout which allows any number of named breakpoints
 /// and sizes.
 abstract class BaseResponsiveLayout extends StatelessWidget {
-  final List<int> _bps;
-
-  final List<WidgetBuilder?> _widgets;
+  final _BreakpointMap<WidgetBuilder> _bps;
 
   BaseResponsiveLayout(
     List<Widget?> widgets,
     List<int> breakpoints, {
     Map<int, Widget>? custom,
     Key? key,
-  })  : _bps = List.from(breakpoints),
-        _widgets = _widgetToBuilder(widgets),
+  })  : _bps = _combineCustomBreakpoints(
+          breakpoints,
+          widgets
+              .map<WidgetBuilder?>(
+                (widget) => widget == null ? null : (BuildContext _) => widget,
+              )
+              .toList(),
+          custom?.map(
+            (key, value) => MapEntry(key, (BuildContext _) => value),
+          ),
+        ),
         super(key: key) {
     _checkConditions();
-    _combineCustomBreakpoints(custom, isWidget: true);
   }
 
   BaseResponsiveLayout.builder(
@@ -135,58 +149,68 @@ abstract class BaseResponsiveLayout extends StatelessWidget {
     List<int> breakpoints, {
     Map<int, WidgetBuilder>? custom,
     Key? key,
-  })  : _bps = List.from(breakpoints),
-        _widgets = widgets,
+  })  : _bps = _combineCustomBreakpoints(breakpoints, widgets, custom),
         super(key: key) {
     _checkConditions();
-    _combineCustomBreakpoints(custom);
+  }
+
+  static T value<T>(
+    BuildContext context,
+    List<T?> values,
+    List<int> breakpoints, {
+    Map<int, T>? custom,
+  }) {
+    final _BreakpointMap<T> bps =
+        _combineCustomBreakpoints(breakpoints, values, custom);
+    return _choose(
+      bps.breakpoints,
+      bps.values,
+      MediaQuery.of(context).size.width,
+    );
   }
 
   /// Checks conditions that should be met by an extending class.
   _checkConditions() {
-    if (_bps.first != 0) {
+    if (_bps.breakpoints.first != 0) {
       throw ArgumentError('The smallest breakpoint width must be 0.');
     }
-    if (_widgets.first == null) {
+    if (_bps.values.first == null) {
       throw ArgumentError('The smallest breakpoint widget cannot be null.');
-    }
-  }
-
-  /// Mixes in the custom breakpoint with ordering
-  _combineCustomBreakpoints(dynamic custom, {bool isWidget = false}) {
-    if (custom != null) {
-      custom.keys.forEach((size) {
-        final WidgetBuilder builder =
-            isWidget ? (BuildContext _) => custom![size]! : custom[size];
-        for (int i = 0; i < _bps.length; i++) {
-          if (size < _bps[i]) {
-            _bps.insert(i, size);
-            _widgets.insert(i, builder);
-            return;
-          }
-        }
-        _bps.add(size);
-        _widgets.add(builder);
-      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return _choose(
-      _bps,
-      _widgets,
+      _bps.breakpoints,
+      _bps.values,
       MediaQuery.of(context).size.width,
     )(context);
   }
 }
 
-/// Converts a list of Widgets to a list of WidgetBuilders
-List<WidgetBuilder?> _widgetToBuilder(List<Widget?> widgets) {
-  final List<WidgetBuilder?> result = [];
-  widgets.forEach(
-      (widget) => result.add(widget == null ? null : (context) => widget));
-  return result;
+/// Mixes in the custom breakpoint with ordering
+_BreakpointMap<T> _combineCustomBreakpoints<T>(
+  List<int> breakpoints,
+  List<T?> values,
+  Map<int, T>? custom,
+) {
+  final List<int> bps = List.from(breakpoints);
+  if (custom != null) {
+    custom.keys.forEach((size) {
+      for (int i = 0; i < bps.length; i++) {
+        if (size < bps[i]) {
+          bps.insert(i, size);
+          values.insert(i, custom[size]!);
+          return;
+        }
+      }
+      bps.add(size);
+      values.add(custom[size]!);
+    });
+  }
+
+  return _BreakpointMap(bps, values);
 }
 
 /// Chooses a value from [values] based on which of [sizes] that [width]
