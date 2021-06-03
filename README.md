@@ -3,7 +3,7 @@
 A flutter package for simplifying responsive layout changes.
 
 Flutter's goal is to allow us to build software for any screen. Mobile
-design typically depends on separate templates for varying screen sizes.
+development typically depends on separate templates for varying screen sizes.
 The web has to deal with even more screen size scenarios using CSS breakpoints.
 Flutter Responsive provides you with tools to create responsive layouts
 for any number of screen sizes and with whatever size names you prefer.
@@ -133,7 +133,7 @@ Most times the names of the existing breakpoints are just fine—but maybe you w
 the screen sizes they are set to. In this simple case, you can override the existing sizes
 by setting the `breakpoints` static property on `ResponsiveLayout`. Make sure to do this at
 the beginning of your app (e.g your `main()` function)
-```
+```dart
 void main() {
   ResponsiveLayout.breakpoints = [0, 100, 200, 300, 400, 500];
   runApp(MyApp());
