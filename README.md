@@ -148,11 +148,11 @@ In this case you'll need to create your own class.
 The `ResponsiveLayout` is actually an extension of an abstract class that allows for *any*
 number of breakpoints. You can extend this abstract class too to create your own names
 (and even change the name of the `custom` argument as well). For instance if you wanted
-names based on screen sizes identifying device type you could copy the code of `ResponsiveLayout`
+names based on screen sizes identifying device type you could use code similar to `ResponsiveLayout`
 and tweak accordingly:
 ```dart
 class MyResponsiveLayout extends BaseResponsiveLayout {
-  static final List<int> breakpoints = [0, 200, 600, 900]; // **
+  static final List<int> breakpoints = [0, 200, 600, 900]; // ** removed ResponsiveLayout bp requirement checks
 
   MyResponsiveLayout({
     required Widget watch,                  // **
@@ -197,4 +197,15 @@ class MyResponsiveLayout extends BaseResponsiveLayout {
     );
   }
 }
+```
+
+and use your new Widget accordingly:
+```dart
+MyResponsiveLayout(
+  watch: Text('Watch'),
+  phone: Text('Phone'),
+  tablet: Text('Tablet'),
+  desktop: Text('Desktop'),
+  custom: { 1600: Text('>= 1600') },
+);
 ```
