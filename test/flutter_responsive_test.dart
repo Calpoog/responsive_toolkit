@@ -231,6 +231,31 @@ void main() {
                 desktop: Text('desktop'),
               ),
           throwsArgumentError);
+
+      expect(
+          () => NoZeroResponsiveLayout.builder(
+                watch: (_) => Text('watch'),
+                phone: (_) => Text('phone'),
+                tablet: (_) => Text('tablet'),
+                desktop: (_) => Text('desktop'),
+              ),
+          throwsArgumentError);
+
+      await tester.pumpWidget(
+        wrap(
+          Builder(
+            builder: (context) => NoZeroResponsiveLayout.value(
+              context,
+              watch: Text('watch'),
+              phone: Text('phone'),
+              tablet: Text('tablet'),
+              desktop: Text('desktop'),
+            ),
+          ),
+        ),
+      );
+
+      expect(tester.takeException(), isInstanceOf<ArgumentError>());
     });
 
     testWidgets('NullSmallestSizeResponsiveLayout throws errors',
@@ -242,6 +267,29 @@ void main() {
                 desktop: Text('desktop'),
               ),
           throwsArgumentError);
+
+      expect(
+          () => NullSmallestSizeResponsiveLayout.builder(
+                phone: (_) => Text('phone'),
+                tablet: (_) => Text('tablet'),
+                desktop: (_) => Text('desktop'),
+              ),
+          throwsArgumentError);
+
+      await tester.pumpWidget(
+        wrap(
+          Builder(
+            builder: (context) => NullSmallestSizeResponsiveLayout.value(
+              context,
+              phone: Text('phone'),
+              tablet: Text('tablet'),
+              desktop: Text('desktop'),
+            ),
+          ),
+        ),
+      );
+
+      expect(tester.takeException(), isInstanceOf<ArgumentError>());
     });
   });
 }
@@ -379,7 +427,7 @@ class NullSmallestSizeResponsiveLayout extends BaseResponsiveLayout {
 
   static T value<T>(
     BuildContext context, {
-    required T watch,
+    T? watch,
     T? phone,
     T? tablet,
     T? desktop,

@@ -112,6 +112,7 @@ class ResponsiveLayout extends BaseResponsiveLayout {
   }
 }
 
+/// An object to transport integer breakpoints mapped to values/Widgets
 class _BreakpointMap<T> {
   final List<int> breakpoints;
   final List<T?> values;
@@ -141,7 +142,7 @@ abstract class BaseResponsiveLayout extends StatelessWidget {
           ),
         ),
         super(key: key) {
-    _checkConditions();
+    _checkConditions(_bps);
   }
 
   BaseResponsiveLayout.builder(
@@ -151,7 +152,7 @@ abstract class BaseResponsiveLayout extends StatelessWidget {
     Key? key,
   })  : _bps = _combineCustomBreakpoints(breakpoints, widgets, custom),
         super(key: key) {
-    _checkConditions();
+    _checkConditions(_bps);
   }
 
   static T value<T>(
@@ -162,21 +163,12 @@ abstract class BaseResponsiveLayout extends StatelessWidget {
   }) {
     final _BreakpointMap<T> bps =
         _combineCustomBreakpoints(breakpoints, values, custom);
+    _checkConditions(bps);
     return _choose(
       bps.breakpoints,
       bps.values,
       MediaQuery.of(context).size.width,
     );
-  }
-
-  /// Checks conditions that should be met by an extending class.
-  _checkConditions() {
-    if (_bps.breakpoints.first != 0) {
-      throw ArgumentError('The smallest breakpoint width must be 0.');
-    }
-    if (_bps.values.first == null) {
-      throw ArgumentError('The smallest breakpoint widget cannot be null.');
-    }
   }
 
   @override
@@ -186,6 +178,16 @@ abstract class BaseResponsiveLayout extends StatelessWidget {
       _bps.values,
       MediaQuery.of(context).size.width,
     )(context);
+  }
+}
+
+/// Checks conditions that should be met by an extending class.
+_checkConditions(_BreakpointMap bps) {
+  if (bps.breakpoints.first != 0) {
+    throw ArgumentError('The smallest breakpoint width must be 0.');
+  }
+  if (bps.values.first == null) {
+    throw ArgumentError('The smallest breakpoint widget cannot be null.');
   }
 }
 
