@@ -10,9 +10,7 @@ for any number of screen sizes and with whatever size names you prefer.
   
   
 <br /><br />
-![Screen-Recording-2021-06-04-at-9 14 17-AM](https://user-images.githubusercontent.com/3476942/120807661-2ffd1680-c516-11eb-95a7-0e844ccba977.gif)
-
-
+![Screen-Recording-2021-06-04-at-9](https://user-images.githubusercontent.com/3476942/120811952-8c623500-c51a-11eb-9fe1-8816e5358ea3.gif)
 
 
 ## Installation
