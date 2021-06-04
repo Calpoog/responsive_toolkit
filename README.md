@@ -7,6 +7,13 @@ development typically depends on separate templates for varying screen sizes.
 The web has to deal with even more screen size scenarios using CSS breakpoints.
 Flutter Responsive provides you with tools to create responsive layouts
 for any number of screen sizes and with whatever size names you prefer.
+  
+  
+<br /><br />
+![Screen-Recording-2021-06-04-at-9 14 17-AM](https://user-images.githubusercontent.com/3476942/120807661-2ffd1680-c516-11eb-95a7-0e844ccba977.gif)
+
+
+
 
 ## Installation
 
@@ -95,6 +102,7 @@ ResponsiveLayout.builder(
 )
 ```
 
+<br /><br />
 ### `ResponsiveLayout.value` Utility Method
 
 In many scenarios you won't need a full different layout for the responsive design you are
@@ -132,7 +140,7 @@ Text(
 Now, only the values that change depending on screen width are calculated with no repeated code.
 
 The `ResponsiveLayout.value` uses the same arguments and size logic as `ResponsiveLayout`.
-
+<br /><br />
 ## Creating your own breakpoints
 
 ### Changing widths of existing breakpoints
