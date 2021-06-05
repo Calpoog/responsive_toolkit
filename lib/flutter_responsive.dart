@@ -22,19 +22,8 @@ class Breakpoints<T> extends BaseBreakpoints<T> {
 ///
 /// Extend this class to create custom breakpoint names and sizes.
 class BaseBreakpoints<T> {
-  List<int> _bps = [];
-
-  set breakpoints(List<int> value) {
-    if (value.length != 6)
-      throw ArgumentError('You must specify all six breakpoints');
-    if (value.first != 0) throw ArgumentError('The first breakpoint must be 0');
-
-    _bps = List.from(value);
-    _bps.sort((a, b) => a - b);
-  }
-
   /// The integer widths at which layout changes will occur.
-  List<int> get breakpoints => _bps;
+  List<int> breakpoints = [];
 
   /// The values used at each breakpoint.
   List<T?> values;
@@ -53,18 +42,23 @@ class BaseBreakpoints<T> {
       throw ArgumentError('The smallest breakpoint widget cannot be null.');
     }
 
-    // Combine the custom breakpoints into the existing bp and values lists
-    _bps = List.from(breakpoints);
+    _combineCustomBreakpoints(breakpoints, custom);
+  }
+
+  // Combine the custom breakpoints into the existing breakpoint and values
+  // lists
+  _combineCustomBreakpoints(List<int> bps, Map<int, T>? custom) {
+    breakpoints = List.from(bps);
     if (custom != null) {
       custom.keys.forEach((size) {
-        for (int i = 0; i < _bps.length; i++) {
-          if (size < _bps[i]) {
-            _bps.insert(i, size);
+        for (int i = 0; i < breakpoints.length; i++) {
+          if (size < breakpoints[i]) {
+            breakpoints.insert(i, size);
             values.insert(i, custom[size]!);
             return;
           }
         }
-        _bps.add(size);
+        breakpoints.add(size);
         values.add(custom[size]!);
       });
     }
@@ -98,10 +92,12 @@ class BaseBreakpoints<T> {
 /// next smallest. One-off sizes can be provided using a [custom] mapping.
 /// ```
 /// ResponsiveLayout(
-///   sm: Text('>= 576'),
-///   md: Text('>= 768'),
-///   xl: Text('>= 1200'),
-///   custom: { 1600: Text('>= 1600') },
+///   Breakpoints(
+///     sm: Text('>= 576'),
+///     md: Text('>= 768'),
+///     xl: Text('>= 1200'),
+///     custom: { 1600: Text('>= 1600') },
+///   ),
 /// );
 /// ```
 ///
@@ -109,10 +105,12 @@ class BaseBreakpoints<T> {
 /// prior to [ResponsiveLayout] deciding which to display.
 /// ```
 /// ResponsiveLayout.builder(
-///   sm: (context) => Text('>= 576'),
-///   md: (context) => Text('>= 768'),
-///   xl: (context) => Text('>= 1200'),
-///   custom: { 1600: (context) => Text('>= 1600') },
+///   Breakpoints(
+///     sm: (context) => Text('>= 576'),
+///     md: (context) => Text('>= 768'),
+///     xl: (context) => Text('>= 1200'),
+///     custom: { 1600: (context) => Text('>= 1600') },
+///   ),
 /// );
 /// ```
 class ResponsiveLayout extends StatelessWidget {
@@ -121,7 +119,7 @@ class ResponsiveLayout extends StatelessWidget {
   /// Creates a Widget that chooses another Widget to display based on the
   /// screen size.
   ResponsiveLayout(
-    Breakpoints<Widget> breakpoints, {
+    BaseBreakpoints<Widget> breakpoints, {
     Key? key,
   }) : _breakpoints = breakpoints.map(
             (widget) => widget == null ? null : (BuildContext _) => widget);
