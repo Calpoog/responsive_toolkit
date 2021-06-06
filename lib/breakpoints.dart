@@ -25,10 +25,10 @@ class Breakpoints<T> extends BaseBreakpoints<T> {
 /// Extend this class to create custom breakpoint names and sizes.
 class BaseBreakpoints<T> {
   /// The integer widths at which layout changes will occur.
-  List<int> breakpoints = [];
+  final List<int> breakpoints = [];
 
   /// The values used at each breakpoint.
-  List<T?> values;
+  final List<T?> values;
 
   /// Creates a new set of breakpoints and associated values.
   BaseBreakpoints({
@@ -50,7 +50,7 @@ class BaseBreakpoints<T> {
   // Combine the custom breakpoints into the existing breakpoint and values
   // lists
   _combineCustomBreakpoints(List<int> bps, Map<int, T>? custom) {
-    breakpoints = List.from(bps);
+    breakpoints.addAll(bps);
     if (custom != null) {
       custom.keys.forEach((size) {
         for (int i = 0; i < breakpoints.length; i++) {
@@ -72,5 +72,17 @@ class BaseBreakpoints<T> {
       breakpoints: breakpoints,
       values: values.map<V>((v) => f(v)).toList(),
     );
+  }
+
+  /// Chooses a value based on which of [breakpoints] is satisfied by [width].
+  T choose(double width) {
+    for (int i = breakpoints.length - 1; i >= 0; i--) {
+      if (width >= breakpoints[i] && values[i] != null) {
+        // It's been checked above that the value is non-null
+        return values[i]!;
+      }
+    }
+    // it is enforced that the smallest breakpoint Widget/value must be provided
+    return values[0]!;
   }
 }

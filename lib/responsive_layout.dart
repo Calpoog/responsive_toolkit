@@ -17,7 +17,7 @@ import 'breakpoints.dart';
 ///
 /// A Text Widget reading '>= 768' will be displayed by the following example
 /// if the screen width is 800px. If the width was 1150px the result would still
-/// be be the same as no 'lg' breakpoint was provided and it defaults to the
+/// be the same as no 'lg' breakpoint was provided and it defaults to the
 /// next smallest. One-off sizes can be provided using a [custom] mapping.
 /// ```
 /// ResponsiveLayout(
@@ -61,32 +61,15 @@ class ResponsiveLayout extends StatelessWidget {
   }) : _breakpoints = breakpoints;
 
   static T value<T>(BuildContext context, BaseBreakpoints<T?> breakpoints) {
-    return _choose(
-      breakpoints,
+    return breakpoints.choose(
       MediaQuery.of(context).size.width,
-    );
+    )!;
   }
 
   @override
   Widget build(BuildContext context) {
-    return _choose(
-      _breakpoints,
+    return _breakpoints.choose(
       MediaQuery.of(context).size.width,
-    )(context);
+    )!(context);
   }
-}
-
-/// Chooses a value based on which of [breakpoints] is satisfied by the current
-/// screen [width].
-T _choose<T>(BaseBreakpoints<T?> breakpoints, double width) {
-  final sizes = breakpoints.breakpoints;
-  final values = breakpoints.values;
-  for (int i = sizes.length - 1; i >= 0; i--) {
-    if (width >= sizes[i] && values[i] != null) {
-      // It's been checked above that the value is non-null
-      return values[i]!;
-    }
-  }
-  // it is enforced that the smallest breakpoint Widget/value must be provided
-  return values[0]!;
 }
