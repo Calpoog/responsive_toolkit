@@ -154,13 +154,61 @@ If you'd like to make a choice between multiple values based on screen size with
 `ResponsiveLayout.value` you can also use the `choose` method on the `Breakpoints` class. In
 this case you can control what width is used for the choice more explicitly.
 
-```
+```dart
 final int fontSize = Breakpoints(
     xs: 10,
     md: 14,
     xl: 18,
     custom: {456: 12},
 ).choose(MediaQuery.of(context).size.width);
+```
+
+### Controlling the breakpoint axis
+
+Up until this point we've mostly talked about screen sizes in terms of width (this is most common).
+However, you may want to control layout in the vertical axis as well. `ResponsiveLayout`,
+`ResponsiveLayout.builder` and `ResponsiveLayout.value` all support an `axis` argument. This
+defaults to `Axis.horizontal` (breakpoints on screen width), but you can also use
+`Axis.vertical` to have your breakpoints operate on screen height. Usually you'll have different
+expectations for what sizes breakpoints use in the vertical axis. Because cases like this are more
+rare, you may be able to just use the `custom` argument. If you need to use different breakpoints for
+the vertical axis more frequently, consider creating your own as shown in
+[creating your own breakpoints](#creating-your-own-breakpoints).
+
+```dart
+ResponsiveLayout(
+    Breakpoints(
+        xs: ...,
+        custom: {
+            300: ...,
+            500: ...,
+        }
+    ),
+    axis: Axis.vertical,
+),
+```
+
+<br /><br />
+## Using contraints instead of screen size
+
+It may make sense for some layouts to be dependent on their allotted max width or height. In this
+case you can use `ResponsiveConstraintLayout` that has an API that matches `ResponsiveLayout`.
+However, the `ResponsiveConstraintLayout` chooses which Widget to display using the breakpoints
+based on the constraints (max width or height) passed to it from parent Widgets. This can be quite
+useful in scenarios where you may not know where a Widget will be placed and therefore can't know
+what sizes it may be expected to display correctly in. If your Widget starts looking bad when
+displayed less than 300px wide – you can control that explicitly.
+
+```dart
+ResponsiveConstraintLayout(
+    Breakpoints(
+        xs: ..., // xs still required (covers 0-300)
+        custom: {
+            300: ...,
+            500: ...,
+        }
+    ),
+),
 ```
 
 <br /><br />
