@@ -222,6 +222,109 @@ void main() {
       await tester.pump();
       expect(find.text('1050'), findsOneWidget);
     });
+
+    testWidgets('changes rendered widget on vertical axes',
+        (WidgetTester tester) async {
+      tester.binding.window.physicalSizeTestValue = Size(500, 500);
+      await tester.pumpWidget(wrap(ResponsiveLayout(
+        Breakpoints(
+          xs: Text('xs vertical'),
+          lg: Text('lg vertical'),
+        ),
+        axis: Axis.vertical,
+      )));
+
+      expect(find.text('xs vertical'), findsOneWidget);
+
+      tester.binding.window.physicalSizeTestValue = Size(500, 1000);
+
+      await tester.pump();
+
+      expect(find.text('lg vertical'), findsOneWidget);
+    });
+  });
+
+  group('ResponsiveConstraintLayout', () {
+    testWidgets('changes rendered widget on horizontal axis',
+        (WidgetTester tester) async {
+      tester.binding.window.physicalSizeTestValue = Size(500, 500);
+
+      final widget = wrap(
+        Row(
+          children: [
+            Expanded(
+              child: ResponsiveConstraintLayout(
+                Breakpoints(
+                  xs: Text('xs'),
+                  sm: Text('sm'),
+                  lg: Text('lg'),
+                  custom: {300: Text('300')},
+                ),
+              ),
+            ),
+            Expanded(
+              child: Container(),
+            ),
+          ],
+        ),
+      );
+      await tester.pumpWidget(widget);
+
+      expect(find.text('xs'), findsOneWidget);
+
+      tester.binding.window.physicalSizeTestValue = Size(700, 500);
+      await tester.pump();
+      expect(find.text('300'), findsOneWidget);
+
+      tester.binding.window.physicalSizeTestValue = Size(1200, 500);
+      await tester.pump();
+      expect(find.text('sm'), findsOneWidget);
+
+      tester.binding.window.physicalSizeTestValue = Size(2000, 500);
+      await tester.pump();
+      expect(find.text('lg'), findsOneWidget);
+    });
+
+    testWidgets('changes rendered widget on vertical axis',
+        (WidgetTester tester) async {
+      tester.binding.window.physicalSizeTestValue = Size(500, 500);
+
+      final widget = wrap(
+        Column(
+          children: [
+            Expanded(
+              child: ResponsiveConstraintLayout(
+                Breakpoints(
+                  xs: Text('xs'),
+                  sm: Text('sm'),
+                  lg: Text('lg'),
+                  custom: {300: Text('300')},
+                ),
+                axis: Axis.vertical,
+              ),
+            ),
+            Expanded(
+              child: Container(),
+            ),
+          ],
+        ),
+      );
+      await tester.pumpWidget(widget);
+
+      expect(find.text('xs'), findsOneWidget);
+
+      tester.binding.window.physicalSizeTestValue = Size(500, 700);
+      await tester.pump();
+      expect(find.text('300'), findsOneWidget);
+
+      tester.binding.window.physicalSizeTestValue = Size(500, 1200);
+      await tester.pump();
+      expect(find.text('sm'), findsOneWidget);
+
+      tester.binding.window.physicalSizeTestValue = Size(500, 2000);
+      await tester.pump();
+      expect(find.text('lg'), findsOneWidget);
+    });
   });
 
   group('Extended Classes', () {

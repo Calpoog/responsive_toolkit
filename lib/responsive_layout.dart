@@ -141,9 +141,14 @@ class ResponsiveConstraintLayout extends ResponsiveLayout {
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
-      builder: (_, constraints) => _breakpoints.choose(
-        axis == Axis.horizontal ? constraints.maxWidth : constraints.maxHeight,
-      )!(context),
+      builder: (_, constraints) {
+        print(constraints.maxWidth);
+        return _breakpoints.choose(
+          axis == Axis.horizontal
+              ? constraints.maxWidth
+              : constraints.maxHeight,
+        )!(context);
+      },
     );
   }
 }
