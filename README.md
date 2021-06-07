@@ -178,7 +178,7 @@ the vertical axis more frequently, consider creating your own as shown in
 ```dart
 ResponsiveLayout(
     Breakpoints(
-        xs: ...,
+        xs: ..., // xs still required (covers 0-300)
         custom: {
             300: ...,
             500: ...,
@@ -202,7 +202,7 @@ displayed less than 300px wide – you can control that explicitly.
 ```dart
 ResponsiveConstraintLayout(
     Breakpoints(
-        xs: ..., // xs still required (covers 0-300)
+        xs: ...,
         custom: {
             300: ...,
             500: ...,
