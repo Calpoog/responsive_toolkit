@@ -150,6 +150,19 @@ Text(
 
 Now, only the values that change depending on screen width are calculated with no repeated code.
 
+If you'd like to make a choice between multiple values based on screen size without
+`ResponsiveLayout.value` you can also use the `choose` method on the `Breakpoints` class. In
+this case you can control what width is used for the choice more explicitly.
+
+```
+final int fontSize = Breakpoints(
+    xs: 10,
+    md: 14,
+    xl: 18,
+    custom: {456: 12},
+).choose(MediaQuery.of(context).size.width);
+```
+
 <br /><br />
 
 ## Creating your own breakpoints
