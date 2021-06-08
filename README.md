@@ -1,5 +1,14 @@
 # responsive_toolkit
 
+[![flutter_responsive](https://img.shields.io/badge/flutter-responsive-brightgreen.svg)](https://github.com/Calpoog/flutter_responsive)
+[![Pub release](https://img.shields.io/pub/v/flutter_responsive.svg)](https://pub.dev/packages/flutter_responsive)
+[![GitHub Release Date](https://img.shields.io/github/release-date/Codelessly/ResponsiveFramework.svg)](https://github.com/Calpoog/flutter_responsive)
+[![GitHub issues](https://img.shields.io/github/issues/Calpoog/flutter_responsive.svg)](https://github.com/Calpoog/flutter_responsive/issues)
+[![GitHub top language](https://img.shields.io/github/languages/top/Calpoog/flutter_responsive.svg)](https://github.com/Calpoog/flutter_responsive)
+[![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/Calpoog/flutter_responsive.svg)](https://github.com/Calpoog/flutter_responsive)
+[![Libraries.io for GitHub](https://img.shields.io/librariesio/github/Calpoog/flutter_responsive.svg)](https://libraries.io/github/Calpoog/flutter_responsive)
+[![License](https://img.shields.io/github/license/Calpoog/flutter_responsive)](https://libraries.io/github/Calpoog/flutter_responsive)
+
 A flutter package for simplifying responsive layout changes.
 
 Flutter's goal is to allow us to build software for any screen. Mobile
