@@ -64,9 +64,14 @@ class ResponsiveLayout extends StatelessWidget {
     Key? key,
   }) : _breakpoints = breakpoints;
 
-  static T value<T>(BuildContext context, BaseBreakpoints<T?> breakpoints) {
+  static T value<T>(
+    BuildContext context,
+    BaseBreakpoints<T?> breakpoints, {
+    Axis axis = Axis.horizontal,
+  }) {
+    final Size size = MediaQuery.of(context).size;
     return breakpoints.choose(
-      MediaQuery.of(context).size.width,
+      axis == Axis.horizontal ? size.width : size.height,
     )!;
   }
 
@@ -79,11 +84,12 @@ class ResponsiveLayout extends StatelessWidget {
   }
 }
 
-/// A Widget that chooses another Widget to display based on the max width
-/// of its constraints.
+/// A Widget that chooses another Widget to display based on the max constraint
+/// on [axis]
 ///
-/// The displayed Widget is chosen based on the greatest provided breakpoint
-/// that satisfies `current constraint max width > breakpoint`
+/// The default screen axis is horizontal (screen width). The displayed Widget
+/// is chosen based on the greatest provided breakpoint that satisfies
+/// `current constraint max width/height > breakpoint`
 ///
 /// The default breakpoints are:
 /// * xs:  < 576
