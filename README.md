@@ -2,7 +2,7 @@
 
 [![responsive_toolkit](https://img.shields.io/badge/flutter-responsive-brightgreen.svg)](https://github.com/Calpoog/responsive_toolkit)
 [![Pub release](https://img.shields.io/pub/v/responsive_toolkit.svg)](https://pub.dev/packages/responsive_toolkit)
-[![GitHub Release Date](https://img.shields.io/github/release-date/Codelessly/ResponsiveFramework.svg)](https://github.com/Calpoog/responsive_toolkit)
+[![GitHub Release Date](https://img.shields.io/github/release-date/Calpoog/responsive_toolkit.svg)](https://github.com/Calpoog/responsive_toolkit)
 [![GitHub issues](https://img.shields.io/github/issues/Calpoog/responsive_toolkit.svg)](https://github.com/Calpoog/responsive_toolkit/issues)
 [![GitHub top language](https://img.shields.io/github/languages/top/Calpoog/responsive_toolkit.svg)](https://github.com/Calpoog/responsive_toolkit)
 [![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/Calpoog/responsive_toolkit.svg)](https://github.com/Calpoog/responsive_toolkit)
