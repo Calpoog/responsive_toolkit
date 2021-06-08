@@ -202,7 +202,8 @@ ResponsiveLayout(
 ## Using contraints instead of screen size
 
 It may make sense for some layouts to be dependent on their allotted max width or height. In this
-case you can use `ResponsiveConstraintLayout` that has an API that matches `ResponsiveLayout`.
+case you can use `ResponsiveConstraintLayout` that has an API much like `ResponsiveLayout`
+(there is no `.value()` utility method).
 However, the `ResponsiveConstraintLayout` chooses which Widget to display using the breakpoints
 based on the constraints (max width or height) passed to it from parent Widgets. This can be quite
 useful in scenarios where you may not know where a Widget will be placed and therefore can't know
