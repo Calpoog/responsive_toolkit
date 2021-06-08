@@ -1,4 +1,4 @@
-# flutter_responsive
+# responsive_toolkit
 
 A flutter package for simplifying responsive layout changes.
 
@@ -13,11 +13,11 @@ for any number of screen sizes and with whatever size names you prefer.
 
 ## Installation
 
-Add `flutter_responsive` to your list of dependencies in `pubspec.yaml`
+Add `responsive_toolkit` to your list of dependencies in `pubspec.yaml`
 
 ```yaml
 dependencies:
-    flutter_responsive:
+    responsive_toolkit:
 ```
 
 ## Usage
@@ -32,7 +32,7 @@ sizes to other values and Widgets.
 
 ```dart
 // Import the package
-import 'package:flutter_responsive/flutter_responsive.dart';
+import 'package:responsive_toolkit/responsive_toolkit.dart';
 
 //  Use responsive layout widget
 ResponsiveLayout(
@@ -189,6 +189,7 @@ ResponsiveLayout(
 ```
 
 <br /><br />
+
 ## Using contraints instead of screen size
 
 It may make sense for some layouts to be dependent on their allotted max width or height. In this
@@ -227,7 +228,7 @@ For instance if you wanted names based on screen sizes identifying device type y
 ```dart
 class MyBreakpoints<T> extends BaseBreakpoints<T> {
   MyBreakpoints({
-    required T watch,                                   // **             
+    required T watch,                                   // **
     T? phone,                                           // **
     T? tablet,                                          // **
     T? desktop,                                         // **

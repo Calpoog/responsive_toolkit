@@ -1,7 +1,7 @@
-name: flutter_responsive
+name: responsive_toolkit
 description: Responsive layout tools for Flutter
 version: 0.0.1
-homepage: https://github.com/Calpoog/flutter_responsive
+homepage: https://github.com/Calpoog/responsive_toolkit
 
 environment:
   sdk: ">=2.12.0 <3.0.0"
