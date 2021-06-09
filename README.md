@@ -1,6 +1,6 @@
 # responsive_toolkit
 
-[![responsive_toolkit](https://img.shields.io/badge/flutter-responsive-brightgreen.svg)](https://github.com/Calpoog/responsive_toolkit)
+[![responsive_toolkit](https://img.shields.io/badge/responsive-toolkit-brightgreen.svg)](https://github.com/Calpoog/responsive_toolkit)
 [![Pub release](https://img.shields.io/pub/v/responsive_toolkit.svg)](https://pub.dev/packages/responsive_toolkit)
 [![GitHub Release Date](https://img.shields.io/github/release-date/Calpoog/responsive_toolkit.svg)](https://github.com/Calpoog/responsive_toolkit)
 [![GitHub issues](https://img.shields.io/github/issues/Calpoog/responsive_toolkit.svg)](https://github.com/Calpoog/responsive_toolkit/issues)
