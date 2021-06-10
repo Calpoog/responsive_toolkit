@@ -1,11 +1,10 @@
 name: responsive_toolkit
-description: Responsive layout tools for Flutter
+description: Easy-to-use responsive tools for Flutter. Simplify layouts across screens of any size and shape.
 version: 0.0.1
 homepage: https://github.com/Calpoog/responsive_toolkit
 
 environment:
   sdk: ">=2.12.0 <3.0.0"
-  flutter: ">=1.17.0"
 
 dependencies:
   flutter:
