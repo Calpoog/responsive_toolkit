@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'dart:math' as math;
 
 import 'package:flutter/rendering.dart';
@@ -547,7 +546,6 @@ class _ResponsiveRenderWrap extends RenderBox
   }
 
   _layoutFillColumns(_RunMetrics run, double mainAxisLimit) {
-    log('Run finished ${run.children.length} : ${run.mainAxisExtent} x ${run.crossAxisExtent}');
     final fillColumns = run.children
         .where(
           (column) => (column.parentData! as _ResponsiveWrapParentData)._column!.fill,
@@ -561,10 +559,6 @@ class _ResponsiveRenderWrap extends RenderBox
 
     if (fillColumns.length > 0) {
       double freeSpace = mainAxisLimit - run.mainAxisExtent;
-      log('Free space $freeSpace');
-      log('Min ${fillColumns.map((e) => _getParentData(e)._minIntrinsicWidth)}');
-
-      log('Distributing $freeSpace between ${fillColumns.length} fill columns');
 
       // Space distribution logic only matters when there's more than one in the row
       if (fillColumns.length > 1) {
@@ -574,7 +568,6 @@ class _ResponsiveRenderWrap extends RenderBox
 
           return diff < 0 ? -1 : (diff > 0 ? 1 : 0);
         });
-        log('Sorted ${sorted.map((e) => _getParentData(e)._minIntrinsicWidth)}');
 
         for (int i = 0; i < sorted.length; i++) {
           final double a = _getParentData(sorted[i])._minIntrinsicWidth;
@@ -590,15 +583,11 @@ class _ResponsiveRenderWrap extends RenderBox
 
           if (freeSpace == 0) break;
         }
-        log('Adj ${sorted.map((e) => _getParentData(e)._adjustedWidth)}');
-        log('Full ${sorted.map((e) => _getParentData(e)._adjustedWidth + _getParentData(e)._minIntrinsicWidth)}');
       } else {
-        log('Single fill column');
         _getParentData(fillColumns.first)._adjustedWidth = freeSpace;
       }
 
       fillColumns.forEach((column) {
-        log('???');
         final _ResponsiveWrapParentData parentData = _getParentData(column);
         column.layout(
           BoxConstraints(
