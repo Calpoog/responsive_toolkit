@@ -9,7 +9,13 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  golden_toolkit: ^0.9.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
+flutter:
+  assets:
+    # needed to trigger the FontManifest.json to be included
+    - images/

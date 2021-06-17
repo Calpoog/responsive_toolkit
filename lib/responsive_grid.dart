@@ -1,24 +1,28 @@
+import 'dart:developer';
 import 'dart:math' as math;
 
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-class ResponsiveColumn extends StatelessWidget {
+class ResponsiveColumn {
   final bool auto;
   final bool fill;
   final int span;
   final int offset;
+  final int order;
   final Widget child;
 
   ResponsiveColumn({
     required this.span,
     this.offset = 0,
+    this.order = 0,
     required this.child,
   })  : this.fill = false,
         this.auto = false;
 
   ResponsiveColumn.auto({
     this.offset = 0,
+    this.order = 0,
     required this.child,
   })  : this.auto = true,
         this.fill = false,
@@ -26,20 +30,11 @@ class ResponsiveColumn extends StatelessWidget {
 
   ResponsiveColumn.fill({
     this.offset = 0,
+    this.order = 0,
     required this.child,
   })  : this.auto = false,
         this.fill = true,
         this.span = 0;
-
-  @override
-  Widget build(BuildContext context) {
-    return this.auto
-        ? child
-        : Container(
-            width: double.infinity,
-            child: child,
-          );
-  }
 }
 
 class _ResponsiveWrapParentData extends ContainerBoxParentData<RenderBox> {
@@ -65,14 +60,15 @@ class ResponsiveRow extends MultiChildRenderObjectWidget {
 
   ResponsiveRow({
     Key? key,
-    required this.columns,
+    required List<ResponsiveColumn> columns,
     this.alignment = WrapAlignment.start,
     this.spacing = 0.0,
     this.runAlignment = WrapAlignment.start,
     this.runSpacing = 0.0,
     this.crossAxisAlignment = WrapCrossAlignment.start,
     this.clipBehavior = Clip.none,
-  }) : super(key: key, children: columns);
+  })  : this.columns = columns..sort((a, b) => a.order - b.order),
+        super(key: key, children: columns.map((col) => col.child).toList());
 
   @override
   _ResponsiveRenderWrap createRenderObject(BuildContext context) {
@@ -151,7 +147,6 @@ class _ResponsiveRenderWrap extends RenderBox
   WrapAlignment get alignment => _alignment;
   WrapAlignment _alignment;
   set alignment(WrapAlignment value) {
-    assert(value != null);
     if (_alignment == value) return;
     _alignment = value;
     markNeedsLayout();
@@ -171,7 +166,6 @@ class _ResponsiveRenderWrap extends RenderBox
   double get spacing => _spacing;
   double _spacing;
   set spacing(double value) {
-    assert(value != null);
     if (_spacing == value) return;
     _spacing = value;
     markNeedsLayout();
@@ -194,7 +188,6 @@ class _ResponsiveRenderWrap extends RenderBox
   WrapAlignment get runAlignment => _runAlignment;
   WrapAlignment _runAlignment;
   set runAlignment(WrapAlignment value) {
-    assert(value != null);
     if (_runAlignment == value) return;
     _runAlignment = value;
     markNeedsLayout();
@@ -213,7 +206,6 @@ class _ResponsiveRenderWrap extends RenderBox
   double get runSpacing => _runSpacing;
   double _runSpacing;
   set runSpacing(double value) {
-    assert(value != null);
     if (_runSpacing == value) return;
     _runSpacing = value;
     markNeedsLayout();
@@ -331,10 +323,6 @@ class _ResponsiveRenderWrap extends RenderBox
     parentData._minIntrinsicWidth = 0.0;
   }
 
-  BoxConstraints _subtractMainAxis(BoxConstraints constraints, double mainAxisAmount) {
-    return constraints.copyWith(maxWidth: constraints.maxWidth - mainAxisAmount);
-  }
-
   bool _hasVisualOverflow = false;
 
   @override
@@ -379,17 +367,20 @@ class _ResponsiveRenderWrap extends RenderBox
   @override
   void performLayout() {
     final BoxConstraints constraints = this.constraints;
+
     _hasVisualOverflow = false;
     RenderBox? child = firstChild;
     if (child == null) {
       size = constraints.smallest;
       return;
     }
-    double mainAxisLimit = constraints.maxWidth + _spacing;
+
     final double spacing = this.spacing;
     final double runSpacing = this.runSpacing;
     final List<_RunMetrics> runMetrics = [_RunMetrics()];
+
     int childIndex = 0;
+    double mainAxisLimit = constraints.maxWidth + spacing;
     double mainAxisExtent = 0.0;
     double crossAxisExtent = 0.0;
 
@@ -412,21 +403,20 @@ class _ResponsiveRenderWrap extends RenderBox
         if (column.auto) {
           // Auto columns are constrained to a full run width always
           child.layout(
-            _subtractMainAxis(
-              BoxConstraints(maxWidth: constraints.maxWidth, maxHeight: constraints.maxHeight),
-              buffer,
-            ),
+            BoxConstraints(maxWidth: constraints.maxWidth - buffer),
             parentUsesSize: true,
           );
+          childMainAxisExtent = _getMainAxisExtent(child.size) + buffer;
         }
         // A span column is always the size it specifies (it's guaranteed to be < run width)
         else {
+          childMainAxisExtent = _getWidth(column.span, mainAxisLimit) - spacing;
           child.layout(
-            BoxConstraints(maxWidth: _getWidth(column.span, mainAxisLimit) - spacing),
+            BoxConstraints(maxWidth: childMainAxisExtent),
             parentUsesSize: true,
           );
+          childMainAxisExtent += buffer;
         }
-        childMainAxisExtent = _getMainAxisExtent(child.size) + buffer;
         childCrossAxisExtent = _getCrossAxisExtent(child.size);
       }
 
@@ -435,7 +425,8 @@ class _ResponsiveRenderWrap extends RenderBox
       childParentData._column = column;
 
       // A column runs over the remaining space
-      if (runMetrics.last.mainAxisExtent + childMainAxisExtent > mainAxisLimit) {
+      if ((runMetrics.last.mainAxisExtent + childMainAxisExtent).roundToDouble() > mainAxisLimit) {
+        log('breaking ${runMetrics.last.mainAxisExtent + childMainAxisExtent} > $mainAxisLimit');
         _layoutFillColumns(runMetrics.last, mainAxisLimit);
         mainAxisExtent = math.max(mainAxisExtent, runMetrics.last.mainAxisExtent);
         crossAxisExtent += runMetrics.last.crossAxisExtent + runSpacing;
@@ -530,7 +521,9 @@ class _ResponsiveRenderWrap extends RenderBox
 
       metrics.children.forEach((child) {
         final _ResponsiveWrapParentData childParentData = child.parentData! as _ResponsiveWrapParentData;
-        final double childMainAxisExtent = _getMainAxisExtent(child.size);
+        double childMainAxisExtent = _getMainAxisExtent(child.size);
+        if (childParentData._column!.span > 0)
+          childMainAxisExtent = math.max(childMainAxisExtent, _getWidth(childParentData._column!.span, mainAxisLimit));
         final double childMainAxisOffset = _getWidth(childParentData._column!.offset, mainAxisLimit);
         final double childCrossAxisExtent = _getCrossAxisExtent(child.size);
         final double childCrossAxisOffset = _getChildCrossAxisOffset(runCrossAxisExtent, childCrossAxisExtent);
@@ -592,7 +585,6 @@ class _ResponsiveRenderWrap extends RenderBox
         column.layout(
           BoxConstraints(
             maxWidth: parentData._minIntrinsicWidth + parentData._adjustedWidth,
-            maxHeight: constraints.maxHeight,
           ),
           parentUsesSize: true,
         );
