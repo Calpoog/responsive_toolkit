@@ -53,7 +53,104 @@ Widget content(double width) => Align(
     );
 
 void main() {
+  group('ResponsiveRow Breakpoints', () {
+    testGoldens('fills match goldens', (WidgetTester tester) async {
+      final builder = DeviceBuilder()
+        ..overrideDevicesForAllScenarios(devices: [
+          Device(name: 'xs', size: Size(400, 70)),
+          Device(name: 'sm', size: Size(600, 70)),
+          Device(name: 'md', size: Size(800, 70)),
+          Device(name: 'lg', size: Size(1000, 70)),
+          Device(name: 'xl', size: Size(1300, 70)),
+          Device(name: 'xxl', size: Size(1500, 70)),
+        ]);
+
+      builder.addScenario(
+        name: 'Span and offset',
+        widget: ResponsiveRow(
+          breakOnConstraints: true,
+          columns: [
+            ResponsiveColumn(
+                Breakpoints(
+                  xs: ResponsiveColumnConfig(span: 12),
+                  sm: ResponsiveColumnConfig(span: 10, offset: 2),
+                  md: ResponsiveColumnConfig(span: 8, offset: 4),
+                  lg: ResponsiveColumnConfig(span: 6, offset: 6),
+                  xl: ResponsiveColumnConfig(span: 4, offset: 8),
+                  xxl: ResponsiveColumnConfig(span: 2, offset: 10),
+                ),
+                child: container()),
+          ],
+        ),
+      );
+
+      builder.addScenario(
+        name: 'Swapping types',
+        widget: ResponsiveRow(
+          breakOnConstraints: true,
+          columns: [
+            ResponsiveColumn(
+              Breakpoints(
+                xs: ResponsiveColumnConfig(), // auto
+                sm: ResponsiveColumnConfig(type: ResponsiveColumnType.fill),
+                md: ResponsiveColumnConfig(type: ResponsiveColumnType.auto),
+                lg: ResponsiveColumnConfig(type: ResponsiveColumnType.fill),
+                xl: ResponsiveColumnConfig(type: ResponsiveColumnType.auto),
+                xxl: ResponsiveColumnConfig(type: ResponsiveColumnType.fill),
+              ),
+              child: container(text: 'Hello'),
+            ),
+            ResponsiveColumn.span(span: 1, child: container()),
+          ],
+        ),
+      );
+
+      builder.addScenario(
+        name: 'Reordering',
+        widget: ResponsiveRow(
+          breakOnConstraints: true,
+          columns: [
+            ResponsiveColumn(
+                Breakpoints(
+                  xs: ResponsiveColumnConfig(span: 1), // auto
+                  sm: ResponsiveColumnConfig(span: 1, order: 2),
+                  md: ResponsiveColumnConfig(span: 1, order: 4),
+                  lg: ResponsiveColumnConfig(span: 1, order: 6),
+                  xl: ResponsiveColumnConfig(span: 1, order: 8),
+                  xxl: ResponsiveColumnConfig(span: 1, order: 10),
+                ),
+                child: container(color: colors.last)),
+            ...List.generate(11, (i) => ResponsiveColumn.span(span: 1, order: i, child: container(color: colors[i]))),
+          ],
+        ),
+      );
+
+      await tester.pumpDeviceBuilder(builder);
+
+      await screenMatchesGolden(tester, 'responsive_row_breakpoints');
+    });
+  });
+
   group('ResponsiveColumn', () {
+    testWidgets('config sets type to span if not provided', (WidgetTester tester) async {
+      final col = ResponsiveColumnConfig(span: 2);
+      expect(col.type, equals(ResponsiveColumnType.span));
+    });
+
+    testWidgets('config sets type to span if not provided when composed', (WidgetTester tester) async {
+      final col = ResponsiveColumn(
+        Breakpoints(
+          xs: ResponsiveColumnConfig(),
+          md: ResponsiveColumnConfig(type: ResponsiveColumnType.fill),
+          xl: ResponsiveColumnConfig(span: 2),
+        ),
+        child: container(),
+      );
+
+      ResponsiveColumnConfig config = col.breakpoints.values[4]!;
+      expect(config.type, equals(ResponsiveColumnType.span));
+    });
+
     testWidgets('accepts a single breakpoint', (WidgetTester tester) async {
       final col = ResponsiveColumn(
         Breakpoints(xs: ResponsiveColumnConfig(span: 2)),
@@ -61,10 +158,10 @@ void main() {
       );
 
       ResponsiveColumnConfig config = col.breakpoints.values.first!;
-      expect(config.type == ResponsiveColumnType.auto, isTrue);
-      expect(config.span == 2, isTrue);
-      expect(config.offset == 0, isTrue);
-      expect(config.order == 0, isTrue);
+      expect(config.type, equals(ResponsiveColumnType.span));
+      expect(config.span, equals(2));
+      expect(config.offset, equals(0));
+      expect(config.order, equals(0));
     });
 
     testWidgets('can compose multiple breakpoints', (WidgetTester tester) async {
@@ -78,16 +175,48 @@ void main() {
       );
 
       ResponsiveColumnConfig md = col.breakpoints.values[2]!;
-      expect(md.type == ResponsiveColumnType.fill, isTrue);
-      expect(md.span == 3, isTrue);
-      expect(md.offset == 0, isTrue);
-      expect(md.order == 0, isTrue);
+      expect(md.type, equals(ResponsiveColumnType.fill));
+      expect(md.span, equals(3));
+      expect(md.offset, equals(0));
+      expect(md.order, equals(0));
 
       ResponsiveColumnConfig xl = col.breakpoints.values[4]!;
-      expect(xl.type == ResponsiveColumnType.span, isTrue);
-      expect(xl.span == 3, isTrue);
-      expect(xl.offset == 0, isTrue);
-      expect(xl.order == 4, isTrue);
+      expect(xl.type, equals(ResponsiveColumnType.span));
+      expect(xl.span, equals(3));
+      expect(xl.offset, equals(0));
+      expect(xl.order, equals(4));
+    });
+
+    testWidgets('can compose multiple breakpoints2', (WidgetTester tester) async {
+      final col = ResponsiveColumn(
+        Breakpoints(
+          xs: ResponsiveColumnConfig(), // auto
+          sm: ResponsiveColumnConfig(type: ResponsiveColumnType.fill),
+          md: ResponsiveColumnConfig(type: ResponsiveColumnType.auto),
+          lg: ResponsiveColumnConfig(type: ResponsiveColumnType.fill),
+          xl: ResponsiveColumnConfig(type: ResponsiveColumnType.auto),
+          xxl: ResponsiveColumnConfig(type: ResponsiveColumnType.fill),
+        ),
+        child: container(),
+      );
+
+      ResponsiveColumnConfig config = col.breakpoints.values[0]!;
+      expect(config.type, equals(ResponsiveColumnType.auto));
+
+      config = col.breakpoints.values[1]!;
+      expect(config.type, equals(ResponsiveColumnType.fill));
+
+      config = col.breakpoints.values[2]!;
+      expect(config.type, equals(ResponsiveColumnType.auto));
+
+      config = col.breakpoints.values[3]!;
+      expect(config.type, equals(ResponsiveColumnType.fill));
+
+      config = col.breakpoints.values[4]!;
+      expect(config.type, equals(ResponsiveColumnType.auto));
+
+      config = col.breakpoints.values[5]!;
+      expect(config.type, equals(ResponsiveColumnType.fill));
     });
   });
 
