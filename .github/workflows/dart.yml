@@ -23,10 +23,6 @@ jobs:
     
     steps:
     - uses: actions/checkout@v2
-    
-    - name: Setup tmate session
-      uses: mxschmitt/action-tmate@v3
-      if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
 
     - uses: actions/setup-java@v1
       with:
@@ -39,3 +35,7 @@ jobs:
     - run: flutter pub get
     
     - run: flutter test
+
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+      if: ${{ failure() && github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
