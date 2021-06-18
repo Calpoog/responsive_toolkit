@@ -1,3 +1,5 @@
+import 'responsive_grid.dart';
+
 /// A set of breakpoints and associated values.
 ///
 /// The xs breakpoint is required.
@@ -63,6 +65,16 @@ class BaseBreakpoints<T> {
         breakpoints.add(size);
         values.add(custom[size]!);
       });
+    }
+
+    if (values.first is Composable<T>) {
+      for (int i = breakpoints.length - 1; i >= 0; i--) {
+        if (values[i] != null) {
+          values[i] = (values[i] as Composable<T>).compose(
+            values.sublist(0, i).where((value) => value != null).map((e) => e!).toList(),
+          );
+        }
+      }
     }
   }
 

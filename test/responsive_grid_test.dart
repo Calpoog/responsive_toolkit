@@ -22,7 +22,8 @@ final colors = [
   Colors.black,
 ];
 
-ResponsiveColumn span(int span, {int offset = 0}) => ResponsiveColumn(span: span, offset: offset, child: container());
+ResponsiveColumn span(int span, {int offset = 0}) =>
+    ResponsiveColumn.span(span: span, offset: offset, child: container());
 ResponsiveColumn auto({String text = text, int offset = 0}) =>
     ResponsiveColumn.auto(offset: offset, child: container(text: text));
 ResponsiveColumn fill({String? text, int offset = 0, Widget? child}) =>
@@ -52,6 +53,44 @@ Widget content(double width) => Align(
     );
 
 void main() {
+  group('ResponsiveColumn', () {
+    testWidgets('accepts a single breakpoint', (WidgetTester tester) async {
+      final col = ResponsiveColumn(
+        Breakpoints(xs: ResponsiveColumnConfig(span: 2)),
+        child: container(),
+      );
+
+      ResponsiveColumnConfig config = col.breakpoints.values.first!;
+      expect(config.type == ResponsiveColumnType.auto, isTrue);
+      expect(config.span == 2, isTrue);
+      expect(config.offset == 0, isTrue);
+      expect(config.order == 0, isTrue);
+    });
+
+    testWidgets('can compose multiple breakpoints', (WidgetTester tester) async {
+      final col = ResponsiveColumn(
+        Breakpoints(
+          xs: ResponsiveColumnConfig(span: 2),
+          md: ResponsiveColumnConfig(span: 3, type: ResponsiveColumnType.fill),
+          xl: ResponsiveColumnConfig(type: ResponsiveColumnType.span, order: 4),
+        ),
+        child: container(),
+      );
+
+      ResponsiveColumnConfig md = col.breakpoints.values[2]!;
+      expect(md.type == ResponsiveColumnType.fill, isTrue);
+      expect(md.span == 3, isTrue);
+      expect(md.offset == 0, isTrue);
+      expect(md.order == 0, isTrue);
+
+      ResponsiveColumnConfig xl = col.breakpoints.values[4]!;
+      expect(xl.type == ResponsiveColumnType.span, isTrue);
+      expect(xl.span == 3, isTrue);
+      expect(xl.offset == 0, isTrue);
+      expect(xl.order == 4, isTrue);
+    });
+  });
+
   group('ResponsiveRow', () {
     testGoldens('spans match goldens', (WidgetTester tester) async {
       final golden = GoldenBuilder.column(wrap: full);
@@ -65,8 +104,8 @@ void main() {
         golden.addScenario(
             '$i/${12 - i} columns',
             ResponsiveRow(columns: [
-              ResponsiveColumn(span: i, child: container()),
-              ResponsiveColumn(span: 12 - i, child: container())
+              ResponsiveColumn.span(span: i, child: container()),
+              ResponsiveColumn.span(span: 12 - i, child: container())
             ]));
       }
 
@@ -74,7 +113,7 @@ void main() {
         golden.addScenario(
             '$i offset',
             ResponsiveRow(columns: [
-              ResponsiveColumn(span: 1, offset: i, child: container()),
+              ResponsiveColumn.span(span: 1, offset: i, child: container()),
             ]));
       }
 
@@ -119,24 +158,27 @@ void main() {
       golden.addScenario(
         '12 ordinal 1 columns',
         ResponsiveRow(
-          columns: List.generate(12, (i) => ResponsiveColumn(span: 1, order: 1, child: container(color: colors[i]))),
+          columns:
+              List.generate(12, (i) => ResponsiveColumn.span(span: 1, order: 1, child: container(color: colors[i]))),
         ),
       );
 
       List<ResponsiveColumn> ordered =
-          List.generate(11, (i) => ResponsiveColumn(span: 1, order: i + 1, child: container(color: colors[i])));
+          List.generate(11, (i) => ResponsiveColumn.span(span: 1, order: i + 1, child: container(color: colors[i])));
 
       golden.addScenario(
         'One column reordered to front',
         ResponsiveRow(
-          columns: List.from(ordered)..add(ResponsiveColumn(span: 1, order: 0, child: container(color: colors[11]))),
+          columns: List.from(ordered)
+            ..add(ResponsiveColumn.span(span: 1, order: 0, child: container(color: colors[11]))),
         ),
       );
 
       golden.addScenario(
         'One column reordered to middle',
         ResponsiveRow(
-          columns: List.from(ordered)..add(ResponsiveColumn(span: 1, order: 5, child: container(color: colors[11]))),
+          columns: List.from(ordered)
+            ..add(ResponsiveColumn.span(span: 1, order: 5, child: container(color: colors[11]))),
         ),
       );
 
