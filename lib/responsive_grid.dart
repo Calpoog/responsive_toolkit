@@ -63,6 +63,7 @@ class ResponsiveColumn {
     int span = 0,
     int offset = 0,
     int order = 0,
+    ResponsiveCrossAlignment? crossAxisAlignment,
     required this.child,
   }) : breakpoints = Breakpoints(
           xs: ResponsiveColumnConfig(
@@ -70,6 +71,7 @@ class ResponsiveColumn {
             span: span,
             offset: offset,
             order: order,
+            crossAxisAlignment: crossAxisAlignment,
           ),
         );
 
@@ -82,6 +84,7 @@ class ResponsiveColumn {
     required int span,
     int offset = 0,
     int order = 0,
+    ResponsiveCrossAlignment? crossAxisAlignment,
     required Widget child,
   }) : this._(
           child: child,
@@ -89,28 +92,33 @@ class ResponsiveColumn {
           offset: offset,
           order: order,
           span: span,
+          crossAxisAlignment: crossAxisAlignment,
         );
 
   ResponsiveColumn.auto({
     int offset = 0,
     int order = 0,
+    ResponsiveCrossAlignment? crossAxisAlignment,
     required Widget child,
   }) : this._(
           child: child,
           type: ResponsiveColumnType.auto,
           offset: offset,
           order: order,
+          crossAxisAlignment: crossAxisAlignment,
         );
 
   ResponsiveColumn.fill({
     int offset = 0,
     int order = 0,
+    ResponsiveCrossAlignment? crossAxisAlignment,
     required Widget child,
   }) : this._(
           child: child,
           type: ResponsiveColumnType.fill,
           offset: offset,
           order: order,
+          crossAxisAlignment: crossAxisAlignment,
         );
 }
 
@@ -426,9 +434,11 @@ class _ResponsiveRenderWrap extends RenderBox
     return childSize.height;
   }
 
-  double _getChildCrossAxisOffset(double runCrossAxisExtent, double childCrossAxisExtent) {
+  double _getChildCrossAxisOffset(
+      ResponsiveColumnConfig column, double runCrossAxisExtent, double childCrossAxisExtent) {
     final double freeSpace = runCrossAxisExtent - childCrossAxisExtent;
-    switch (crossAxisAlignment) {
+    final ResponsiveCrossAlignment align = column.crossAxisAlignment ?? crossAxisAlignment;
+    switch (align) {
       case ResponsiveCrossAlignment.start:
       case ResponsiveCrossAlignment.stretch:
         return 0.0;
@@ -644,9 +654,10 @@ class _ResponsiveRenderWrap extends RenderBox
 
       metrics.children.forEach((child) {
         final _ResponsiveWrapParentData childParentData = _getParentData(child);
+        final ResponsiveColumnConfig column = childParentData._column!;
         final double childMainAxisOffset = _getWidth(childParentData._column!.offset!, mainAxisLimit);
         final double childCrossAxisExtent = _getCrossAxisExtent(child.size);
-        final double childCrossAxisOffset = _getChildCrossAxisOffset(runCrossAxisExtent, childCrossAxisExtent);
+        final double childCrossAxisOffset = _getChildCrossAxisOffset(column, runCrossAxisExtent, childCrossAxisExtent);
         childParentData.offset = Offset(
           childMainPosition + childMainAxisOffset,
           crossAxisOffset + childCrossAxisOffset,
@@ -654,7 +665,8 @@ class _ResponsiveRenderWrap extends RenderBox
         childMainPosition += childParentData._explicitWidth + childMainAxisOffset + childBetweenSpace;
 
         // If the cross axis is supposed to stretch – re-layout children that aren't full height
-        if (crossAxisAlignment == ResponsiveCrossAlignment.stretch && childCrossAxisExtent < runCrossAxisExtent) {
+        final align = column.crossAxisAlignment ?? crossAxisAlignment;
+        if (align == ResponsiveCrossAlignment.stretch && childCrossAxisExtent < runCrossAxisExtent) {
           child.layout(BoxConstraints.tightFor(width: _getMainAxisExtent(child.size), height: runCrossAxisExtent));
         }
       });

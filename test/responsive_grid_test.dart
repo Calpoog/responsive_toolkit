@@ -433,7 +433,8 @@ void main() {
 
       final fills = List.generate(
         4,
-        (i) => fill(
+        (i) => ResponsiveColumn.fill(
+          crossAxisAlignment: i == 1 ? ResponsiveCrossAlignment.end : null,
           child: Container(
               decoration: BoxDecoration(color: Colors.grey, border: Border.all()), child: content(50, 10 * (i + 1))),
         ),
