@@ -26,10 +26,10 @@ Add `responsive_toolkit` to your list of dependencies in `pubspec.yaml`
 
 ```yaml
 dependencies:
-    responsive_toolkit:
+  responsive_toolkit:
 ```
 
-## Usage
+## Responsive layouts
 
 ### `ResponsiveLayout` Widget
 
@@ -58,12 +58,12 @@ ResponsiveLayout(
 
 The default breakpoints used for xs through xxl are as follows:
 
--   xs: < 576
--   sm: >= 576
--   md: >= 768
--   lg: >= 992
--   xl: >= 1200
--   xxl: >= 1400
+- xs: < 576
+- sm: >= 576
+- md: >= 768
+- lg: >= 992
+- xl: >= 1200
+- xxl: >= 1400
 
 Not all breakpoints need to be specified. The smallest size `xs` _must_ be provided, as
 it is always the fallback Widget when the screen width does not match another breakpoint.
@@ -266,3 +266,54 @@ ResponsiveLayout(
 ```
 
 When extending `BaseBreakpoints`, the first breakpoint size **must** be 0. This is enforced by the call to `super()` but make sure to have a 0 in the breakpoints list argument. The base class also enforces that the smallest breakpoint's Widget/value **must** not be null. Make sure to prevent any errors by using `required` for the smallest breakpoint argument in your extending class.
+
+<br /><br />
+
+## Responsive grid
+
+Web developers will be familiar with the concept of a 12 column grid. This is a popular format for providing consistency in design that translates well to code. The columns can span any number of the 12 slots of the grid, offset to create space, and reorder independently of widget code order – all controllable with breakpoints to provide the best layout for the current screen. The toolkit provides a full-fledged responsive grid system including everything previously stated **as well as** auto-width and fill-width (filling remaining row space) columns with wrapping capabilities.
+
+<br />
+
+### `ResponsiveRow` Widget
+
+A grid consists of a series of rows and columns. The `ResponsiveRow` Widget wraps a group of `ResponsiveColumn` objects that collectively represent a full grid. As with web-based grid systems like Bootstrap grid, a `ResponsiveRow` is not visually limited to a single run of items on the screen (like a Flutter Row Widget would be). This is important as you control how much space each column takes up as well as its offset, which allows for precise control of when Widgets wrap to prevent bad visuals and overflow errors.
+
+A simple responsive row with a single column that takes up half the screen would be created like this:
+
+```dart
+ResponsiveRow(
+    columns: [
+        ResponsiveColumn.span(
+            span: 6,
+            child: Container(
+                width: double.infinity,
+                color: Colors.green,
+                padding: EdgeInsets.all(16.0),
+                child: Text('A column'),
+            ),
+        ),
+    ],
+);
+```
+
+A row lays out its columns in a left to right, top to bottom fashion. If the width of a column is too wide to fit on the same line as the previous columns, it will wrap to a new line. The following arguments to `ResponsiveRow` help to fully control how the columns are laid out. Many of these will be familiar as they also apply to the Flutter Widget, `Wrap`.
+
+- `spacing`: The space between columns in the horizontal direction (default 0).
+- `runSpacing`: The space between runs when columns wrap to a new line within the `ResponsiveRow` (default 0).
+- `alignment`: How the remaining space in a run is distributed (default is `WrapAlignment.start`).
+- `crossAxisAlignment`: How the columns within a run are aligned to one another vertically (default is `WrapCrossAlignment.start`).
+- `runAlignment`: How the runs are aligned vertically within the `ResponsiveRow` when the total run height is less than the height of the row (default is `WrapAlignment.start`).
+- `clipBehavior`: How to clip columns that fall outside row vertically (default is `Clip.none`).
+- `breakOnConstraints`: When using columns with breakpoints, whether to use the parent constraints to determine breakpoints instead of screen width (default is `false`).
+
+### `ResponsiveColumn`
+
+`ResponsiveColumn` is actually definition of column rather than a Widget. It cannot be rendered independently of `ResponsiveRow`. Understanding columns, how they're sized and when they wrap is fundamental to taking full advantage of responsive grids.
+
+#### Column types
+
+There are 3 types of columns which match expectations set by other frameworks and also provide ultimate layout flexibility.
+
+- Span: A column that **spans** a portion of a 12 column grid. A span of 6 would mean it consumes half the width of the row.
+- Auto: A column that sizes itself to its child.
