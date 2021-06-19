@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:responsive_toolkit/breakpoints.dart';
 
 enum ResponsiveColumnType { span, auto, fill }
+enum ResponsiveCrossAlignment { start, end, center, stretch }
 
 /// A composable object allowing multiple defitions to be "stacked" where
 /// defined properties override exising properties.
@@ -19,12 +20,14 @@ class ResponsiveColumnConfig implements Composable<ResponsiveColumnConfig> {
   final int? span;
   final int? offset;
   final int? order;
+  final ResponsiveCrossAlignment? crossAxisAlignment;
 
   const ResponsiveColumnConfig({
     final ResponsiveColumnType? type,
     this.span,
     this.offset,
     this.order,
+    this.crossAxisAlignment,
   }) : this.type = type ?? (span == null ? null : ResponsiveColumnType.span);
 
   @override
@@ -34,12 +37,15 @@ class ResponsiveColumnConfig implements Composable<ResponsiveColumnConfig> {
     List<ResponsiveColumnConfig> chain = base
       ..insert(0, fallback)
       ..add(this);
-    return chain.reduce((result, element) => ResponsiveColumnConfig(
-          type: element.type ?? result.type,
-          span: element.span ?? result.span,
-          offset: element.offset ?? result.offset,
-          order: element.order ?? result.order,
-        ));
+    return chain.reduce(
+      (result, element) => ResponsiveColumnConfig(
+        type: element.type ?? result.type,
+        span: element.span ?? result.span,
+        offset: element.offset ?? result.offset,
+        order: element.order ?? result.order,
+        crossAxisAlignment: element.crossAxisAlignment ?? result.crossAxisAlignment,
+      ),
+    );
   }
 
   @override
@@ -126,7 +132,7 @@ class ResponsiveRow extends StatelessWidget {
   final double spacing;
   final WrapAlignment runAlignment;
   final double runSpacing;
-  final WrapCrossAlignment crossAxisAlignment;
+  final ResponsiveCrossAlignment crossAxisAlignment;
   final Clip clipBehavior;
   final bool breakOnConstraints;
 
@@ -137,7 +143,7 @@ class ResponsiveRow extends StatelessWidget {
     this.spacing = 0.0,
     this.runAlignment = WrapAlignment.start,
     this.runSpacing = 0.0,
-    this.crossAxisAlignment = WrapCrossAlignment.start,
+    this.crossAxisAlignment = ResponsiveCrossAlignment.start,
     this.clipBehavior = Clip.none,
     this.breakOnConstraints = false,
   });
@@ -165,7 +171,7 @@ class _ResponsiveRow extends MultiChildRenderObjectWidget {
   final double spacing;
   final WrapAlignment runAlignment;
   final double runSpacing;
-  final WrapCrossAlignment crossAxisAlignment;
+  final ResponsiveCrossAlignment crossAxisAlignment;
   final Clip clipBehavior;
   final Size screenSize;
 
@@ -177,7 +183,7 @@ class _ResponsiveRow extends MultiChildRenderObjectWidget {
     this.spacing = 0.0,
     this.runAlignment = WrapAlignment.start,
     this.runSpacing = 0.0,
-    this.crossAxisAlignment = WrapCrossAlignment.start,
+    this.crossAxisAlignment = ResponsiveCrossAlignment.start,
     this.clipBehavior = Clip.none,
   }) : super(key: key, children: columns.map((col) => col.child).toList());
 
@@ -225,7 +231,7 @@ class _ResponsiveRenderWrap extends RenderBox
     double spacing = 0.0,
     WrapAlignment runAlignment = WrapAlignment.start,
     double runSpacing = 0.0,
-    WrapCrossAlignment crossAxisAlignment = WrapCrossAlignment.start,
+    ResponsiveCrossAlignment crossAxisAlignment = ResponsiveCrossAlignment.start,
     Clip clipBehavior = Clip.none,
   })  : _screenSize = screenSize,
         _columns = columns,
@@ -349,9 +355,9 @@ class _ResponsiveRenderWrap extends RenderBox
   ///    relative to each other in the main axis.
   ///  * [runAlignment], which controls how the runs are placed relative to each
   ///    other in the cross axis.
-  WrapCrossAlignment get crossAxisAlignment => _crossAxisAlignment;
-  WrapCrossAlignment _crossAxisAlignment;
-  set crossAxisAlignment(WrapCrossAlignment value) {
+  ResponsiveCrossAlignment get crossAxisAlignment => _crossAxisAlignment;
+  ResponsiveCrossAlignment _crossAxisAlignment;
+  set crossAxisAlignment(ResponsiveCrossAlignment value) {
     if (_crossAxisAlignment == value) return;
     _crossAxisAlignment = value;
     markNeedsLayout();
@@ -423,11 +429,12 @@ class _ResponsiveRenderWrap extends RenderBox
   double _getChildCrossAxisOffset(double runCrossAxisExtent, double childCrossAxisExtent) {
     final double freeSpace = runCrossAxisExtent - childCrossAxisExtent;
     switch (crossAxisAlignment) {
-      case WrapCrossAlignment.start:
+      case ResponsiveCrossAlignment.start:
+      case ResponsiveCrossAlignment.stretch:
         return 0.0;
-      case WrapCrossAlignment.end:
+      case ResponsiveCrossAlignment.end:
         return freeSpace;
-      case WrapCrossAlignment.center:
+      case ResponsiveCrossAlignment.center:
         return freeSpace / 2.0;
     }
   }
@@ -645,6 +652,11 @@ class _ResponsiveRenderWrap extends RenderBox
           crossAxisOffset + childCrossAxisOffset,
         );
         childMainPosition += childParentData._explicitWidth + childMainAxisOffset + childBetweenSpace;
+
+        // If the cross axis is supposed to stretch – re-layout children that aren't full height
+        if (crossAxisAlignment == ResponsiveCrossAlignment.stretch && childCrossAxisExtent < runCrossAxisExtent) {
+          child.layout(BoxConstraints.tightFor(width: _getMainAxisExtent(child.size), height: runCrossAxisExtent));
+        }
       });
 
       crossAxisOffset += runCrossAxisExtent + runBetweenSpace;

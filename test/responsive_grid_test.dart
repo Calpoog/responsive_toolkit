@@ -24,13 +24,14 @@ final colors = [
 
 ResponsiveColumn span(int span, {int offset = 0}) =>
     ResponsiveColumn.span(span: span, offset: offset, child: container());
-ResponsiveColumn auto({String text = text, int offset = 0}) =>
-    ResponsiveColumn.auto(offset: offset, child: container(text: text));
+ResponsiveColumn auto({String text = text, int offset = 0, double? height}) =>
+    ResponsiveColumn.auto(offset: offset, child: container(text: text, height: height));
 ResponsiveColumn fill({String? text, int offset = 0, Widget? child}) =>
     ResponsiveColumn.fill(offset: offset, child: child ?? (text == null ? SizedBox.shrink() : Text(text)));
 
-Widget container({Color color = Colors.grey, Widget? child, String? text, double? width}) => Container(
-      height: 50,
+Widget container({Color color = Colors.grey, Widget? child, String? text, double? width, double? height = 50.0}) =>
+    Container(
+      height: height,
       width: width,
       decoration: BoxDecoration(color: color, border: Border.all()),
       child: child ?? (text == null ? null : Text(text)),
@@ -43,11 +44,11 @@ Widget full(child) => Container(
       child: child,
     ));
 
-Widget content(double width) => Align(
+Widget content(double width, [double height = 50]) => Align(
       alignment: Alignment.center,
       child: Container(
         color: Colors.green,
-        height: 50,
+        height: height,
         width: width,
       ),
     );
@@ -186,38 +187,6 @@ void main() {
       expect(xl.offset, equals(0));
       expect(xl.order, equals(4));
     });
-
-    testWidgets('can compose multiple breakpoints2', (WidgetTester tester) async {
-      final col = ResponsiveColumn(
-        Breakpoints(
-          xs: ResponsiveColumnConfig(), // auto
-          sm: ResponsiveColumnConfig(type: ResponsiveColumnType.fill),
-          md: ResponsiveColumnConfig(type: ResponsiveColumnType.auto),
-          lg: ResponsiveColumnConfig(type: ResponsiveColumnType.fill),
-          xl: ResponsiveColumnConfig(type: ResponsiveColumnType.auto),
-          xxl: ResponsiveColumnConfig(type: ResponsiveColumnType.fill),
-        ),
-        child: container(),
-      );
-
-      ResponsiveColumnConfig config = col.breakpoints.values[0]!;
-      expect(config.type, equals(ResponsiveColumnType.auto));
-
-      config = col.breakpoints.values[1]!;
-      expect(config.type, equals(ResponsiveColumnType.fill));
-
-      config = col.breakpoints.values[2]!;
-      expect(config.type, equals(ResponsiveColumnType.auto));
-
-      config = col.breakpoints.values[3]!;
-      expect(config.type, equals(ResponsiveColumnType.fill));
-
-      config = col.breakpoints.values[4]!;
-      expect(config.type, equals(ResponsiveColumnType.auto));
-
-      config = col.breakpoints.values[5]!;
-      expect(config.type, equals(ResponsiveColumnType.fill));
-    });
   });
 
   group('ResponsiveRow', () {
@@ -311,9 +280,41 @@ void main() {
         ),
       );
 
+      final spans = List.generate(12, (i) => ResponsiveColumn.span(span: 2, child: container(height: 10 * (i + 1))));
+      golden.addScenario(
+        'Cross axis alignment start',
+        ResponsiveRow(
+          columns: spans,
+        ),
+      );
+
+      golden.addScenario(
+        'Cross axis alignment end',
+        ResponsiveRow(
+          crossAxisAlignment: ResponsiveCrossAlignment.end,
+          columns: spans,
+        ),
+      );
+
+      golden.addScenario(
+        'Cross axis alignment center',
+        ResponsiveRow(
+          crossAxisAlignment: ResponsiveCrossAlignment.center,
+          columns: spans,
+        ),
+      );
+
+      golden.addScenario(
+        'Cross axis alignment stretch',
+        ResponsiveRow(
+          crossAxisAlignment: ResponsiveCrossAlignment.stretch,
+          columns: spans,
+        ),
+      );
+
       await tester.pumpWidgetBuilder(
         golden.build(),
-        surfaceSize: Size(1200, 4000),
+        surfaceSize: Size(1200, 4500),
       );
 
       await screenMatchesGolden(tester, 'span_columns');
@@ -361,6 +362,38 @@ void main() {
         ]),
       );
 
+      final autos = List.generate(12, (i) => auto(height: 10 * (i + 1), text: 'XX'.padLeft(i * 2, 'X')));
+      golden.addScenario(
+        'Cross axis alignment start',
+        ResponsiveRow(
+          columns: autos,
+        ),
+      );
+
+      golden.addScenario(
+        'Cross axis alignment end',
+        ResponsiveRow(
+          crossAxisAlignment: ResponsiveCrossAlignment.end,
+          columns: autos,
+        ),
+      );
+
+      golden.addScenario(
+        'Cross axis alignment center',
+        ResponsiveRow(
+          crossAxisAlignment: ResponsiveCrossAlignment.center,
+          columns: autos,
+        ),
+      );
+
+      golden.addScenario(
+        'Cross axis alignment stretch',
+        ResponsiveRow(
+          crossAxisAlignment: ResponsiveCrossAlignment.stretch,
+          columns: autos,
+        ),
+      );
+
       await tester.pumpWidgetBuilder(
         golden.build(),
         surfaceSize: Size(1200, 4000),
@@ -395,6 +428,44 @@ void main() {
             fill(child: container(child: content(300))),
             fill(child: container(child: content(600))),
           ],
+        ),
+      );
+
+      final fills = List.generate(
+        4,
+        (i) => fill(
+          child: Container(
+              decoration: BoxDecoration(color: Colors.grey, border: Border.all()), child: content(50, 10 * (i + 1))),
+        ),
+      );
+      golden.addScenario(
+        'Cross axis alignment start',
+        ResponsiveRow(
+          columns: fills,
+        ),
+      );
+
+      golden.addScenario(
+        'Cross axis alignment end',
+        ResponsiveRow(
+          crossAxisAlignment: ResponsiveCrossAlignment.end,
+          columns: fills,
+        ),
+      );
+
+      golden.addScenario(
+        'Cross axis alignment center',
+        ResponsiveRow(
+          crossAxisAlignment: ResponsiveCrossAlignment.center,
+          columns: fills,
+        ),
+      );
+
+      golden.addScenario(
+        'Cross axis alignment stretch',
+        ResponsiveRow(
+          crossAxisAlignment: ResponsiveCrossAlignment.stretch,
+          columns: fills,
         ),
       );
 
