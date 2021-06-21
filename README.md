@@ -299,13 +299,13 @@ ResponsiveRow(
 
 <br />
 
-A row lays out its columns in a left to right, top to bottom fashion. If the width of a column is too wide to fit on the same line as the previous columns, it will wrap to a new line. The following arguments to `ResponsiveRow` help to fully control how the columns are laid out. Many of these will be familiar as their concepts apply to the Flutter Widgets like `Wrap`, `Flex`, `Row` and `Column`.
+A row lays out its columns in a left to right, top to bottom fashion. If the width of a column is too wide to fit on the same line as the previous columns, it will wrap to a new line. The following arguments to `ResponsiveRow` help to fully control how the columns are laid out. Many of these will be familiar as their concepts apply to Flutter Widgets like `Wrap`, `Flex`, `Row` and `Column`.
 
 - `spacing`: The space between columns in the horizontal direction (default 0).
 - `runSpacing`: The space between runs when columns wrap to a new line within the `ResponsiveRow` (default 0).
-- `alignment`: How the remaining space in a run is distributed (default is `WrapAlignment.start`).
+- `alignment`: How the remaining space in a run is distributed (default is `ResponsiveAlignment.start`).
 - `crossAxisAlignment`: How the columns within a run are aligned to one another vertically (default is `ResponsiveCrossAlignment.start`).
-- `runAlignment`: How the runs are aligned vertically within the `ResponsiveRow` when the total run height is less than the height of the row (default is `WrapAlignment.start`).
+- `runAlignment`: How the runs are aligned vertically within the `ResponsiveRow` when the total run height is less than the height of the row (default is `ResponsiveAlignment.start`).
 - `clipBehavior`: How to clip columns that overflow the row (default is `Clip.none`).
 - `breakOnConstraints`: When using columns with breakpoints, whether to use the parent constraints to determine breakpoints instead of screen width (default is `false`).
 
