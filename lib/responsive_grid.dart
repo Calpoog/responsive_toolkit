@@ -233,6 +233,15 @@ class ResponsiveRow extends StatelessWidget {
   /// of the row.
   final List<ResponsiveColumn> columns;
 
+  /// The number of columns the grid system supports.
+  ///
+  /// Defaults to 12.
+  ///
+  /// This is not the number of columns that [columns] can hold, but instead the
+  /// number of columns the grid can support when using a [ResponsiveColumn]'s
+  /// [span] property and type.
+  final int maxColumns;
+
   /// How the columns within a run should be placed in the main axis.
   ///
   /// For example, if [alignment] is [ResponsiveAlignment.center], the columns in
@@ -321,6 +330,8 @@ class ResponsiveRow extends StatelessWidget {
   final bool breakOnConstraints;
 
   /// Creates a row of responsive columns
+  ///
+  /// [maxColumns] must be greater than 1.
   ResponsiveRow({
     Key? key,
     required this.columns,
@@ -331,7 +342,8 @@ class ResponsiveRow extends StatelessWidget {
     this.crossAxisAlignment = ResponsiveCrossAlignment.start,
     this.clipBehavior = Clip.none,
     this.breakOnConstraints = false,
-  });
+    this.maxColumns = 12,
+  }) : assert(maxColumns > 1);
 
   @override
   Widget build(BuildContext context) {
@@ -345,6 +357,7 @@ class ResponsiveRow extends StatelessWidget {
         runSpacing: runSpacing,
         crossAxisAlignment: crossAxisAlignment,
         clipBehavior: clipBehavior,
+        maxColumns: maxColumns,
       ),
     );
   }
@@ -360,11 +373,13 @@ class _ResponsiveRow extends MultiChildRenderObjectWidget {
   final ResponsiveCrossAlignment crossAxisAlignment;
   final Clip clipBehavior;
   final Size screenSize;
+  final int maxColumns;
 
   _ResponsiveRow({
     Key? key,
     required this.columns,
     required this.screenSize,
+    this.maxColumns = 12,
     this.alignment = ResponsiveAlignment.start,
     this.spacing = 0.0,
     this.runAlignment = ResponsiveAlignment.start,
@@ -377,6 +392,7 @@ class _ResponsiveRow extends MultiChildRenderObjectWidget {
   _ResponsiveRenderWrap createRenderObject(BuildContext context) {
     return _ResponsiveRenderWrap(
       screenSize: screenSize,
+      maxColumns: maxColumns,
       columns: columns,
       alignment: alignment,
       spacing: spacing,
@@ -391,6 +407,7 @@ class _ResponsiveRow extends MultiChildRenderObjectWidget {
   void updateRenderObject(BuildContext context, _ResponsiveRenderWrap renderObject) {
     renderObject
       ..screenSize = screenSize
+      ..maxColumns = maxColumns
       ..columns = columns
       ..alignment = alignment
       ..spacing = spacing
@@ -402,7 +419,7 @@ class _ResponsiveRow extends MultiChildRenderObjectWidget {
 }
 
 /// A heavily modified version of wrap to support fill columns, breakpoints,
-/// and 12-column grid.
+/// and 12*-column grid.
 class _ResponsiveRenderWrap extends RenderBox
     with
         ContainerRenderObjectMixin<RenderBox, _ResponsiveWrapParentData>,
@@ -414,6 +431,7 @@ class _ResponsiveRenderWrap extends RenderBox
   _ResponsiveRenderWrap({
     required List<ResponsiveColumn> columns,
     required Size screenSize,
+    required int maxColumns,
     List<RenderBox>? children,
     ResponsiveAlignment alignment = ResponsiveAlignment.start,
     double spacing = 0.0,
@@ -422,6 +440,7 @@ class _ResponsiveRenderWrap extends RenderBox
     ResponsiveCrossAlignment crossAxisAlignment = ResponsiveCrossAlignment.start,
     Clip clipBehavior = Clip.none,
   })  : _screenSize = screenSize,
+        _maxColumns = maxColumns,
         _columns = columns,
         _alignment = alignment,
         _spacing = spacing,
@@ -430,6 +449,14 @@ class _ResponsiveRenderWrap extends RenderBox
         _crossAxisAlignment = crossAxisAlignment,
         _clipBehavior = clipBehavior {
     addAll(children);
+  }
+
+  int get maxColumns => _maxColumns;
+  int _maxColumns;
+  set maxColumns(int value) {
+    if (_maxColumns == value) return;
+    _maxColumns = value;
+    markNeedsLayout();
   }
 
   Size get screenSize => _screenSize;
@@ -564,7 +591,7 @@ class _ResponsiveRenderWrap extends RenderBox
   }
 
   double _getWidth(int size, double mainAxisLimit) {
-    return size / 12 * mainAxisLimit;
+    return size / maxColumns * mainAxisLimit;
   }
 
   _ResponsiveWrapParentData _getParentData(RenderBox child) {

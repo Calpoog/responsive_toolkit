@@ -254,6 +254,15 @@ void main() {
       );
 
       golden.addScenario(
+        'Supports other column counts',
+        ResponsiveRow(
+          maxColumns: 10,
+          columns:
+              List.generate(10, (i) => ResponsiveColumn.span(span: 1, order: 1, child: container(color: colors[i]))),
+        ),
+      );
+
+      golden.addScenario(
         '12 ordinal 1 columns',
         ResponsiveRow(
           columns:
