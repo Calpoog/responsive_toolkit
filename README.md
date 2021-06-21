@@ -275,7 +275,7 @@ Web developers will be familiar with the concept of a 12 column grid. This is a 
 
 ### `ResponsiveRow` Widget
 
-A grid consists of a series of rows and columns. The `ResponsiveRow` Widget wraps a group of `ResponsiveColumn` objects that collectively represent a full grid. As with web-based grid systems like Bootstrap grid, a `ResponsiveRow` is not visually limited to a single run of items on the screen (like a Flutter Row Widget would be). This is important as you control how much space each column takes up as well as its offset, which allows for precise control of when Widgets wrap to prevent bad visuals and overflow errors.
+A grid consists of a series of rows and columns. The `ResponsiveRow` Widget wraps a group of `ResponsiveColumn` objects that collectively represent a full grid. As with web-based grid systems like Bootstrap grid, a `ResponsiveRow` is not visually limited to a single run of items on the screen (like a Flutter `Row` Widget would be). This is important as you control how much space each column takes up as well as its offset, which allows for precise control of when Widgets wrap to prevent bad visuals and overflow errors.
 
 A simple responsive row with a single column that takes up half the screen would be created like this:
 
@@ -285,7 +285,7 @@ ResponsiveRow(
     ResponsiveColumn.span(
       span: 6,
       child: Container(
-        width: double.infinity,
+        width: double.infinity, // Make the green box fill the column
         color: Colors.green,
         padding: EdgeInsets.all(16.0),
         child: Text('A column'),
@@ -295,18 +295,18 @@ ResponsiveRow(
 );
 ```
 
-> **_NOTE:_**  A "column" refers to more precisely to a grid cell (this is a common responsive grid convention). Despite it being a column, to lay out a series of children within it, use a Flutter `Column` as its child.
+> **_NOTE:_**  A "column" refers more precisely to a grid cell (this is a common responsive grid convention). Despite it being a column, to lay out a vertical series of children within it, use a Flutter `Column` as its child.
 
 <br />
 
-A row lays out its columns in a left to right, top to bottom fashion. If the width of a column is too wide to fit on the same line as the previous columns, it will wrap to a new line. The following arguments to `ResponsiveRow` help to fully control how the columns are laid out. Many of these will be familiar as their concepts apply to the Flutter Widgets `Wrap`, `Flex`, `Row` and `Column`.
+A row lays out its columns in a left to right, top to bottom fashion. If the width of a column is too wide to fit on the same line as the previous columns, it will wrap to a new line. The following arguments to `ResponsiveRow` help to fully control how the columns are laid out. Many of these will be familiar as their concepts apply to the Flutter Widgets like `Wrap`, `Flex`, `Row` and `Column`.
 
 - `spacing`: The space between columns in the horizontal direction (default 0).
 - `runSpacing`: The space between runs when columns wrap to a new line within the `ResponsiveRow` (default 0).
 - `alignment`: How the remaining space in a run is distributed (default is `WrapAlignment.start`).
 - `crossAxisAlignment`: How the columns within a run are aligned to one another vertically (default is `ResponsiveCrossAlignment.start`).
 - `runAlignment`: How the runs are aligned vertically within the `ResponsiveRow` when the total run height is less than the height of the row (default is `WrapAlignment.start`).
-- `clipBehavior`: How to clip columns that fall outside the row vertically (default is `Clip.none`).
+- `clipBehavior`: How to clip columns that overflow the row (default is `Clip.none`).
 - `breakOnConstraints`: When using columns with breakpoints, whether to use the parent constraints to determine breakpoints instead of screen width (default is `false`).
 
 > **_NOTE:_**  A "run" refers to each new line of children within the `ResponsiveRow`. "Row" is used to refer to the Widget as a whole.
@@ -362,7 +362,7 @@ The `offset` argument will push the column to the right by the number of columns
 
 The `order` argument allows the column to move to a different position within the `ResponsiveRow`. The `order` is relative to the `order` argument of the sibling columns. By default each column has an order of 0.
 
-The `crossAxisAlignment` argument allows the column to control its position in the vertical direction independently of the value of `crossAxisAlignment` on the parent `ResponsiveRow`. For instace, the row defaults to `ResponsiveCrossAlignment.start` but an individual column can align itself to the bottom with `ResponsiveCrossAlignment.end`.
+The `crossAxisAlignment` argument allows the column to control its position in the vertical direction independently of the value of `crossAxisAlignment` on the parent `ResponsiveRow`. For instance, the row defaults to `ResponsiveCrossAlignment.start` but an individual column can align itself to the bottom with `ResponsiveCrossAlignment.end`.
 
 <br />
 
@@ -370,9 +370,9 @@ The `crossAxisAlignment` argument allows the column to control its position in t
 
 Out of the box, `ResponsiveRow` provides a lot of flexibility to create layouts. But the most important aspect of responsive design is responding to changes in the screen width. This is where responsive grids really shine. All the above arguments (and column type) can be controlled individually at every breakpoint.
 
-The following example shows how you'd show 4 Widgets next to one another on large screens, 2 on medium, and stacked on smaller screens.
+The following example shows how you'd show 4 equal-width Widgets next to one another on large screens, 2 on medium, and stacked on smaller screens.
 ```dart
-final int span = ResponsiveLayout.value(Breakpoints(xs: 12, md: 6, lg: 3));
+final int span = ResponsiveLayout.value(context, Breakpoints(xs: 12, md: 6, lg: 3));
 
 ResponsiveRow(
   columns: [
@@ -383,7 +383,9 @@ ResponsiveRow(
   ],
 )
 ```
-The other column arguments can all be controlled using a responsive value in the same way. However, if you need to control the column type, or to control multiple arguments together, you'll need to use the generic `ResponsiveColumn` constructor and `ResponsiveColumnConfig` object.
+The other column arguments can all be controlled using a responsive value in the same way. However, if you need to control the column type, or to control multiple arguments together, you'll want to use the generic `ResponsiveColumn` constructor and `ResponsiveColumnConfig` object. This saves you from creating separate `ResponsiveLayout.value` with their own `Breakpoints` object for each column property.
+
+`ResponsiveRow` takes a `Breakpoints` object of `ResponsiveColumnConfig` and a child. The following example shows how multiple properties of the column can be adjusted at once depending on the screen size.
 
 ```dart
 final int span = ResponsiveLayout.value(context, Breakpoints(xs: 12, md: 6, lg: 3));
@@ -424,4 +426,4 @@ ResponsiveRow(
 ),
 ```
 
-The `ResponsiveColumnConfig` are composable, such that properties not defined in one are composed up from the smallest breakpoint to the one currently being shown. In the above example, when the screen is size `md`, the `offset` is still from the config given for the `xs` breakpoint. If a property isn't provided in *any* of the breakpoints, it will be an auto column with the defaults of `offset`/`order` 0 and a `type` `ResponsiveColumnType.auto`.
+The `ResponsiveColumnConfig` are composable, meaning that properties not defined in one are composed up from the smallest breakpoint to the one currently being shown. In the above example, when the screen is size `md`, the `offset` is still from the config given for the `xs` breakpoint (because no offset was specified for `md`). If a property isn't provided in *any* of the breakpoints, it will be a column with the defaults of `offset`/`order` 0 and `type` `ResponsiveColumnType.auto`.

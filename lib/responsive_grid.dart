@@ -1,27 +1,48 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:responsive_toolkit/breakpoints.dart';
 
+/// A type of responsive column to determine layout in a `ResponsiveRow`.
 enum ResponsiveColumnType { span, auto, fill }
+
+/// How a column is positioned in the cross axis of a `ResponsiveRow`.
 enum ResponsiveCrossAlignment { start, end, center, stretch }
 
 /// A composable object allowing multiple defitions to be "stacked" where
-/// defined properties override exising properties.
+/// defined properties override existing properties.
 abstract class Composable<T> {
   /// Creates a new [T] by composing non-null properties of this onto [base]s
   /// with any completely undefined properties taken from [fallback]
   T compose(List<T> base, [T fallback]);
 }
 
+/// A collection of `ResponsiveColumn` properties intended for use with
+/// `Breakpoints`.
+///
+/// If [span] is provided, [type] is automatically set to
+/// `ResponsiveColumnType.span`.
+///
+/// If [span] is provided and [type] is not `ResponsiveColumnType.span`, the
+/// [span] is ignored and will be treated as a [type] column.
 class ResponsiveColumnConfig implements Composable<ResponsiveColumnConfig> {
+  /// The type of column which controls how it fills the row
   final ResponsiveColumnType? type;
+
+  /// The number of columns to span
   final int? span;
+
+  /// The number of columns to offset (pushes from the left)
   final int? offset;
+
+  /// The position of this column within `ResponsiveRow` relative to the [order]
+  /// property of the other columns.
   final int? order;
   final ResponsiveCrossAlignment? crossAxisAlignment;
 
+  /// Creates a definition for the display of a `ResponsiveColumn`
   const ResponsiveColumnConfig({
     final ResponsiveColumnType? type,
     this.span,
@@ -30,6 +51,9 @@ class ResponsiveColumnConfig implements Composable<ResponsiveColumnConfig> {
     this.crossAxisAlignment,
   }) : this.type = type ?? (span == null ? null : ResponsiveColumnType.span);
 
+  /// Creates a new `ResponsiveColumnConfig` by composing non-null properties of
+  /// this onto [base]s with any completely undefined properties taken from
+  /// [fallback]
   @override
   ResponsiveColumnConfig compose(List<ResponsiveColumnConfig> base,
       [ResponsiveColumnConfig fallback =
@@ -54,10 +78,16 @@ class ResponsiveColumnConfig implements Composable<ResponsiveColumnConfig> {
   }
 }
 
+/// A definition of a column's layout and child for use in `ResponiveRow`.
 class ResponsiveColumn {
+  /// The breakpoints at which the column's configurable properties can change.
   final Breakpoints<ResponsiveColumnConfig> breakpoints;
+
+  /// The child to display in the column.
   final Widget child;
 
+  /// Creates a consistent `ResponsiveColumn` from the multiple different ways
+  /// to call via other constructors.
   ResponsiveColumn._({
     required ResponsiveColumnType type,
     int span = 0,
@@ -75,11 +105,14 @@ class ResponsiveColumn {
           ),
         );
 
+  /// Creates a responsive column with its properties defined in [breakpoints].
   ResponsiveColumn(
     this.breakpoints, {
     required this.child,
   });
 
+  /// Creates a column that takes [span] columns of space in the run of a
+  /// `ResponsiveRow`
   ResponsiveColumn.span({
     required int span,
     int offset = 0,
@@ -95,6 +128,8 @@ class ResponsiveColumn {
           crossAxisAlignment: crossAxisAlignment,
         );
 
+  /// Creates a column that takes the space of its child in the run of a
+  /// `ResponsiveRow`
   ResponsiveColumn.auto({
     int offset = 0,
     int order = 0,
@@ -108,6 +143,15 @@ class ResponsiveColumn {
           crossAxisAlignment: crossAxisAlignment,
         );
 
+  /// Creates a column that fills the remaining space in the run of a
+  /// `ResponsiveRow`
+  ///
+  /// A fill column won't become smaller than the `minIntrinsicWidth` of its
+  /// child.
+  ///
+  /// If a run contains one or multiple fill columns, a column will not wrap
+  /// until all fill columns have been reduced to their smallest size based on
+  /// their children.
   ResponsiveColumn.fill({
     int offset = 0,
     int order = 0,
@@ -122,28 +166,118 @@ class ResponsiveColumn {
         );
 }
 
+/// The parent data used for row layout algorithm.
 class _ResponsiveWrapParentData extends ContainerBoxParentData<RenderBox> {
   ResponsiveColumnConfig? _column;
   double _minIntrinsicWidth = 0.0;
   double _explicitWidth = 0.0;
 }
 
+/// Information about a run in a `ResponsiveRow`
 class _RunMetrics {
   double mainAxisExtent = 0;
   double crossAxisExtent = 0;
   final List<RenderBox> children = [];
 }
 
+/// A series of `ResponsiveColumn` which lays out left to right, top to bottom,
+/// while wrapping columns based on their responsive grid properties.
+///
+/// By default, when using `Breakpoints`, the layout is based on the
+/// `MediaQuery.of(context).size.width`.
 class ResponsiveRow extends StatelessWidget {
+  /// A list of `ResponsiveColumn` objects which define the layout and children
+  /// of the row.
   final List<ResponsiveColumn> columns;
+
+  /// How the columns within a run should be placed in the main axis.
+  ///
+  /// For example, if [alignment] is [WrapAlignment.center], the columns in
+  /// each run are grouped together in the center of their run in the main axis.
+  ///
+  /// Defaults to [WrapAlignment.start].
+  ///
+  /// See also:
+  ///
+  ///  * [runAlignment], which controls how the runs are placed relative to each
+  ///    other in the cross axis.
+  ///  * [crossAxisAlignment], which controls how the columns within each run
+  ///    are placed relative to each other in the cross axis.
   final WrapAlignment alignment;
+
+  /// How much space to place between columns in a run in the main axis.
+  ///
+  /// For example, if [spacing] is 10.0, the columns will be spaced at least
+  /// 10.0 logical pixels apart in the main axis.
+  ///
+  /// If there is additional free space in a run (e.g., because the row has a
+  /// minimum size that is not filled or because some runs are longer than
+  /// others), the additional free space will be allocated according to the
+  /// [alignment].
+  ///
+  /// Defaults to 0.0.
   final double spacing;
+
+  /// How the runs themselves should be placed in the cross axis.
+  ///
+  /// For example, if [runAlignment] is [WrapAlignment.center], the runs are
+  /// grouped together in the center of the overall [ResponsiveRow] in the cross
+  /// axis.
+  ///
+  /// Defaults to [WrapAlignment.start].
+  ///
+  /// See also:
+  ///
+  ///  * [alignment], which controls how the columns within each run are placed
+  ///    relative to each other in the main axis.
+  ///  * [crossAxisAlignment], which controls how the columns within each run
+  ///    are placed relative to each other in the cross axis.
   final WrapAlignment runAlignment;
+
+  /// How much space to place between the runs themselves in the cross axis.
+  ///
+  /// For example, if [runSpacing] is 10.0, the runs will be spaced at least
+  /// 10.0 logical pixels apart in the cross axis.
+  ///
+  /// If there is additional free space (e.g., because the `ResponsiveRow` has a
+  /// minimum size that is not filled), the additional free space will be
+  /// allocated according to the [runAlignment].
+  ///
+  /// Defaults to 0.0.
   final double runSpacing;
+
+  /// How the columns within a run should be aligned relative to each other in
+  /// the cross axis.
+  ///
+  /// For example, if this is set to [ResponsiveCrossAlignment.end], then the
+  /// children within each run will have their bottom edges aligned to the
+  /// bottom edge of the run.
+  ///
+  /// Defaults to [ResponsiveCrossAlignment.start].
+  ///
+  /// See also:
+  ///
+  ///  * [alignment], which controls how the columns within each run are placed
+  ///    relative to each other in the main axis.
+  ///  * [runAlignment], which controls how the runs are placed relative to each
+  ///    other in the cross axis.
   final ResponsiveCrossAlignment crossAxisAlignment;
+
+  /// How content that overflows the row is clipped.
+  ///
+  /// Defaults to `Clip.none`.
+  ///
+  /// e.g. if the constraints to the row force it smaller than the total height
+  /// of all its runs, some columns will overflow the bottom of the row.
   final Clip clipBehavior;
+
+  /// Whether to choose breakpoints for its columns based on incoming
+  /// constraints.
+  ///
+  /// Defaults to `false` (uses `MediaQuery.of(context).size.width`).
   final bool breakOnConstraints;
 
+  /// Creates a row of responsive columns
   ResponsiveRow({
     Key? key,
     required this.columns,
@@ -173,6 +307,7 @@ class ResponsiveRow extends StatelessWidget {
   }
 }
 
+/// The true responsive row containing layout logic to size based on children.
 class _ResponsiveRow extends MultiChildRenderObjectWidget {
   final List<ResponsiveColumn> columns;
   final WrapAlignment alignment;
@@ -223,6 +358,8 @@ class _ResponsiveRow extends MultiChildRenderObjectWidget {
   }
 }
 
+/// A heavily modified version of wrap to support fill columns, breakpoints,
+/// and 12-column grid.
 class _ResponsiveRenderWrap extends RenderBox
     with
         ContainerRenderObjectMixin<RenderBox, _ResponsiveWrapParentData>,
@@ -268,19 +405,6 @@ class _ResponsiveRenderWrap extends RenderBox
     markNeedsLayout();
   }
 
-  /// How the children within a run should be placed in the main axis.
-  ///
-  /// For example, if [alignment] is [WrapAlignment.center], the children in
-  /// each run are grouped together in the center of their run in the main axis.
-  ///
-  /// Defaults to [WrapAlignment.start].
-  ///
-  /// See also:
-  ///
-  ///  * [runAlignment], which controls how the runs are placed relative to each
-  ///    other in the cross axis.
-  ///  * [crossAxisAlignment], which controls how the children within each run
-  ///    are placed relative to each other in the cross axis.
   WrapAlignment get alignment => _alignment;
   WrapAlignment _alignment;
   set alignment(WrapAlignment value) {
@@ -289,17 +413,6 @@ class _ResponsiveRenderWrap extends RenderBox
     markNeedsLayout();
   }
 
-  /// How much space to place between children in a run in the main axis.
-  ///
-  /// For example, if [spacing] is 10.0, the children will be spaced at least
-  /// 10.0 logical pixels apart in the main axis.
-  ///
-  /// If there is additional free space in a run (e.g., because the wrap has a
-  /// minimum size that is not filled or because some runs are longer than
-  /// others), the additional free space will be allocated according to the
-  /// [alignment].
-  ///
-  /// Defaults to 0.0.
   double get spacing => _spacing;
   double _spacing;
   set spacing(double value) {
@@ -308,20 +421,6 @@ class _ResponsiveRenderWrap extends RenderBox
     markNeedsLayout();
   }
 
-  /// How the runs themselves should be placed in the cross axis.
-  ///
-  /// For example, if [runAlignment] is [WrapAlignment.center], the runs are
-  /// grouped together in the center of the overall [RenderWrap] in the cross
-  /// axis.
-  ///
-  /// Defaults to [WrapAlignment.start].
-  ///
-  /// See also:
-  ///
-  ///  * [alignment], which controls how the children within each run are placed
-  ///    relative to each other in the main axis.
-  ///  * [crossAxisAlignment], which controls how the children within each run
-  ///    are placed relative to each other in the cross axis.
   WrapAlignment get runAlignment => _runAlignment;
   WrapAlignment _runAlignment;
   set runAlignment(WrapAlignment value) {
@@ -330,16 +429,6 @@ class _ResponsiveRenderWrap extends RenderBox
     markNeedsLayout();
   }
 
-  /// How much space to place between the runs themselves in the cross axis.
-  ///
-  /// For example, if [runSpacing] is 10.0, the runs will be spaced at least
-  /// 10.0 logical pixels apart in the cross axis.
-  ///
-  /// If there is additional free space in the overall [RenderWrap] (e.g.,
-  /// because the wrap has a minimum size that is not filled), the additional
-  /// free space will be allocated according to the [runAlignment].
-  ///
-  /// Defaults to 0.0.
   double get runSpacing => _runSpacing;
   double _runSpacing;
   set runSpacing(double value) {
@@ -348,21 +437,6 @@ class _ResponsiveRenderWrap extends RenderBox
     markNeedsLayout();
   }
 
-  /// How the children within a run should be aligned relative to each other in
-  /// the cross axis.
-  ///
-  /// For example, if this is set to [WrapCrossAlignment.end], and the
-  /// [direction] is [Axis.horizontal], then the children within each
-  /// run will have their bottom edges aligned to the bottom edge of the run.
-  ///
-  /// Defaults to [WrapCrossAlignment.start].
-  ///
-  /// See also:
-  ///
-  ///  * [alignment], which controls how the children within each run are placed
-  ///    relative to each other in the main axis.
-  ///  * [runAlignment], which controls how the runs are placed relative to each
-  ///    other in the cross axis.
   ResponsiveCrossAlignment get crossAxisAlignment => _crossAxisAlignment;
   ResponsiveCrossAlignment _crossAxisAlignment;
   set crossAxisAlignment(ResponsiveCrossAlignment value) {
@@ -371,9 +445,6 @@ class _ResponsiveRenderWrap extends RenderBox
     markNeedsLayout();
   }
 
-  /// {@macro flutter.material.Material.clipBehavior}
-  ///
-  /// Defaults to [Clip.none], and must not be null.
   Clip get clipBehavior => _clipBehavior;
   Clip _clipBehavior = Clip.none;
   set clipBehavior(Clip value) {
@@ -755,6 +826,7 @@ class _ResponsiveRenderWrap extends RenderBox
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
+    properties.add(IterableProperty<ResponsiveColumn>('columns', columns));
     properties.add(EnumProperty<WrapAlignment>('alignment', alignment));
     properties.add(DoubleProperty('spacing', spacing));
     properties.add(EnumProperty<WrapAlignment>('runAlignment', runAlignment));
