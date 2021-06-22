@@ -296,7 +296,7 @@ Web developers will be familiar with the concept of a 12 column grid system (Or 
 
 ### `ResponsiveRow` Widget
 
-A grid consists of a series of rows and columns. The `ResponsiveRow` Widget wraps a group of `ResponsiveColumn` objects that collectively represent a full grid. As with web-based grid systems like Bootstrap grid, a `ResponsiveRow` is not visually limited to a single run of items on the screen (like a Flutter `Row` Widget would be). This is important as you control how much space each column takes up as well as its offset, which allows for precise control of when Widgets wrap to prevent bad visuals and overflow errors. Unlike Android's GridLayout, you _must_ explicitly specify the row and column you intend to add your widget to.
+A grid consists of a series of rows and columns. The `ResponsiveRow` Widget wraps a group of `ResponsiveColumn` objects that collectively represent a full grid. As with web-based grid systems like Bootstrap grid, a `ResponsiveRow` is not visually limited to a single run of items on the screen (like a Flutter `Row` Widget would be). This is important as you control how much space each column takes up as well as its offset, which allows for precise control of when Widgets wrap to prevent bad visuals and overflow errors.
 
 A simple responsive row with a single column that takes up half the screen would be created like this:
 
