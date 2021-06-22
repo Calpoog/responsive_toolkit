@@ -380,7 +380,9 @@ A column that fills the remaining space in the run.
 
 Each type of column also supports the ability to `offset`, `order`, and control its alignment within the row's cross axis (`crossAxisAlignment`).
 
-The `offset` argument will push the column to the right by the number of columns specified.
+The `span` argument determines how many columns the child will span. It must be >0 and <=`maxColumns` of the containing `ResponsiveRow`. Span only affects layout when the `type` is `ResponsiveColumnType.span`.
+
+The `offset` argument will push the column to the right by the number of columns specified. It must be >0 and <`maxColumns` of the containing `ResponsiveRow`.
 
 The `order` argument allows the column to move to a different position within the `ResponsiveRow`. The `order` is relative to the `order` argument of the sibling columns. By default each column has an order of 0.
 
