@@ -405,10 +405,10 @@ final int span = ResponsiveLayout.value(context, Breakpoints(xs: 12, md: 6, lg: 
 
 ResponsiveRow(
   columns: [
-  ResponsiveColumn.span(span: span, child: Center(child: Text('Column 1'))),
-  ResponsiveColumn.span(span: span, child: Center(child: Text('Column 2'))),
-  ResponsiveColumn.span(span: span, child: Center(child: Text('Column 3'))),
-  ResponsiveColumn.span(span: span, child: Center(child: Text('Column 4'))),
+    ResponsiveColumn.span(span: span, child: Center(child: Text('Column 1'))),
+    ResponsiveColumn.span(span: span, child: Center(child: Text('Column 2'))),
+    ResponsiveColumn.span(span: span, child: Center(child: Text('Column 3'))),
+    ResponsiveColumn.span(span: span, child: Center(child: Text('Column 4'))),
   ],
 )
 ```
