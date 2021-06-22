@@ -714,7 +714,6 @@ class _ResponsiveRenderWrap extends RenderBox
     crossAxisExtent += runMetrics.last.crossAxisExtent;
 
     final int runCount = runMetrics.length;
-    assert(runCount > 0);
 
     size = constraints.constrain(Size(mainAxisExtent, crossAxisExtent));
     if (dry) return size;
