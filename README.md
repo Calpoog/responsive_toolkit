@@ -371,7 +371,7 @@ A column that sizes itself to its child.
 
 ---
 **Fill**<br />
-A column that fills the remaining space in the run.
+A column that fills the remaining space in the run. If multiple fill columns are present the remaining space is divided equally among them (similar to them having a flex factor of 1). Fill columns cannot be made smaller than the `minIntrinsicWidth` of their child. For instance, if dividing the remaining space between 3 fill columns causes one to drop below its child's `minIntrinsicWidth`, it will remain at its minimum size and the other fill columns will continue to distribute their widths evenly. The result would be that one or more fill columns are different sizes than the others (this is expected flex behavior on web). Only once all fill columns in a run would be sized below their `minIntrisicWidth` will the last column in the row wrap to a new run.
 
 `ResponsiveColumn.fill(child: ...)`
 
