@@ -35,6 +35,7 @@ for any number of screen sizes and with whatever size names you prefer.
     - [Why use responsive grid](#why-use-responsive-grid)
     - [`ResponsiveColumn`](#responsivecolumn)
       - [Column types](#column-types)
+    - [Visual column layout reference](#visual-column-layout-reference)
     - [Using `Breakpoints` with responsive grid](#using-breakpoints-with-responsive-grid)
     - [Changing the number of columns in the grid system](#changing-the-number-of-columns-in-the-grid-system)
 
@@ -384,6 +385,12 @@ The `offset` argument will push the column to the right by the number of columns
 The `order` argument allows the column to move to a different position within the `ResponsiveRow`. The `order` is relative to the `order` argument of the sibling columns. By default each column has an order of 0.
 
 The `crossAxisAlignment` argument allows the column to control its position in the vertical direction independently of the value of `crossAxisAlignment` on the parent `ResponsiveRow`. For instance, the row defaults to `ResponsiveCrossAlignment.start` but an individual column can align itself to the bottom with `ResponsiveCrossAlignment.end`.
+
+<br />
+
+### Visual column layout reference
+<img alt="responsive example" src="https://user-images.githubusercontent.com/3476942/122844101-e448bc00-d2ce-11eb-9cb4-fe2b2dadccf9.png">
+
 
 <br />
 
