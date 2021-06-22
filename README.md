@@ -20,13 +20,33 @@ for any number of screen sizes and with whatever size names you prefer.
 <br /><br />
 <img src="https://user-images.githubusercontent.com/3476942/120811952-8c623500-c51a-11eb-9fe1-8816e5358ea3.gif" width="100%" />
 
+<br />
+
+- [responsive_toolkit](#responsive_toolkit)
+  - [Installation](#installation)
+  - [Responsive layouts](#responsive-layouts)
+    - [`ResponsiveLayout` Widget](#responsivelayout-widget)
+    - [`ResponsiveLayout.value` Utility Method](#responsivelayoutvalue-utility-method)
+    - [Controlling the breakpoint axis](#controlling-the-breakpoint-axis)
+    - [Using contraints instead of screen size](#using-contraints-instead-of-screen-size)
+  - [Creating your own breakpoints](#creating-your-own-breakpoints)
+  - [Responsive grid](#responsive-grid)
+    - [`ResponsiveRow` Widget](#responsiverow-widget)
+    - [Why use responsive grid](#why-use-responsive-grid)
+    - [`ResponsiveColumn`](#responsivecolumn)
+      - [Column types](#column-types)
+    - [Using `Breakpoints` with responsive grid](#using-breakpoints-with-responsive-grid)
+    - [Changing the number of columns in the grid system](#changing-the-number-of-columns-in-the-grid-system)
+
+<br />
+
 ## Installation
 
 Add `responsive_toolkit` to your list of dependencies in `pubspec.yaml`
 
 ```yaml
 dependencies:
-  responsive_toolkit:
+  responsive_toolkit: ^0.0.3
 ```
 
 ## Responsive layouts
@@ -269,7 +289,7 @@ When extending `BaseBreakpoints`, the first breakpoint size **must** be 0. This 
 
 ## Responsive grid
 
-Web developers will be familiar with the concept of a 12 column grid. This is a popular format for providing consistency in design that translates well to code. The columns can span any number of the 12 slots of the grid, offset to create space, and reorder independently of widget code order – all controllable with breakpoints to provide the best layout for the current screen. The toolkit provides a full-fledged responsive grid system including everything previously stated **as well as** auto-width and fill-width (filling remaining row space) columns with wrapping capabilities.
+Web developers will be familiar with the concept of a 12 column grid system. This is a popular format for providing consistency in design that translates well to code. The columns can span any number of the 12 slots of the grid, offset to create space, and reorder independently of widget code order – all controllable with breakpoints to provide the best layout for the current screen. The toolkit provides a full-fledged responsive grid system including everything previously stated **as well as** auto-width and fill-width (filling remaining row space) columns with wrapping capabilities.
 
 <br />
 
@@ -301,6 +321,7 @@ ResponsiveRow(
 
 A row lays out its columns in a left to right, top to bottom fashion. If the width of a column is too wide to fit on the same line as the previous columns, it will wrap to a new line. The following arguments to `ResponsiveRow` help to fully control how the columns are laid out. Many of these will be familiar as their concepts apply to Flutter Widgets like `Wrap`, `Flex`, `Row` and `Column`.
 
+- `maxColumns`: The number of columns the grid system should support (defaults to 12).
 - `spacing`: The space between columns in the horizontal direction (default 0).
 - `runSpacing`: The space between runs when columns wrap to a new line within the `ResponsiveRow` (default 0).
 - `alignment`: How the remaining space in a run is distributed (default is `ResponsiveAlignment.start`).
@@ -427,3 +448,22 @@ ResponsiveRow(
 ```
 
 The `ResponsiveColumnConfig` are composable, meaning that properties not defined in one are composed up from the smallest breakpoint to the one currently being shown. In the above example, when the screen is size `md`, the `offset` is still from the config given for the `xs` breakpoint (because no offset was specified for `md`). If a property isn't provided in *any* of the breakpoints, it will be a column with the defaults of `offset`/`order` 0 and `type` `ResponsiveColumnType.auto`.
+
+<br />
+
+### Changing the number of columns in the grid system
+
+A 12-column grid is a standard because it supports many common scenarios for layouts. It can create layouts with up to 12 individual columns, but also easily creates equal-width column layouts of 1,2,3,4, and 6 columns. A relatively-common scenario that often appears is laying out 5 equal-width columns. In this case you'd have to change the 12-column layout to a multiple of 5. This is easy to accomplish with the `maxColumns` property on `ResponsiveRow`.
+
+This example generates 5 equal-width columns using a `span` of 2 in a 10-column grid system.
+```dart
+ResponsiveRow(
+  maxColumns: 10,
+  columns:
+      List.generate(5, (i) => ResponsiveColumn.span(
+          span: 2,
+          child: Container(child: Text('Column $i')),
+        ),
+      ),
+),
+```

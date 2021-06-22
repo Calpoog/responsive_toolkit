@@ -695,7 +695,7 @@ class _ResponsiveRenderWrap extends RenderBox
         childParentData._column = column;
 
         // A column runs over the remaining space
-        if ((runMetrics.last.mainAxisExtent + childMainAxisExtent).roundToDouble() > mainAxisLimit) {
+        if ((runMetrics.last.mainAxisExtent + childMainAxisExtent).roundToDouble() > mainAxisLimit.roundToDouble()) {
           _layoutFillColumns(runMetrics.last, mainAxisLimit, dry: dry);
           mainAxisExtent = math.max(mainAxisExtent, runMetrics.last.mainAxisExtent);
           crossAxisExtent += runMetrics.last.crossAxisExtent + runSpacing;
