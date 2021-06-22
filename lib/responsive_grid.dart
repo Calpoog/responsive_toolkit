@@ -650,6 +650,10 @@ class _ResponsiveRenderWrap extends RenderBox
     while (child != null) {
       final childParentData = _getParentData(child);
       childParentData._column = columns.elementAt(childIndex).breakpoints.choose(_screenSize.width);
+      assert(childParentData._column!.span! >= 0 && childParentData._column!.span! <= maxColumns,
+          'Column with config ${childParentData._column} has a span outside the range [0, $maxColumns]');
+      assert(childParentData._column!.offset! >= 0 && childParentData._column!.offset! < maxColumns,
+          'Column with config ${childParentData._column} has an offset outside the range [0, ${maxColumns - 1}]');
       child = childParentData.nextSibling;
       childIndex++;
     }
