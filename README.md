@@ -306,7 +306,6 @@ ResponsiveRow(
     ResponsiveColumn.span(
       span: 6,
       child: Container(
-        width: double.infinity, // Make the green box fill the column
         color: Colors.green,
         padding: EdgeInsets.all(16.0),
         child: Text('A column'),
