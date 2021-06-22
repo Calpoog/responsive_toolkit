@@ -290,7 +290,7 @@ When extending `BaseBreakpoints`, the first breakpoint size **must** be 0. This 
 
 ## Responsive grid
 
-Web developers will be familiar with the concept of a 12 column grid system. This is a popular format for providing consistency in design that translates well to code. The columns can span any number of the 12 slots of the grid, offset to create space, and reorder independently of widget code order – all controllable with breakpoints to provide the best layout for the current screen. The toolkit provides a full-fledged responsive grid system including everything previously stated **as well as** auto-width and fill-width (filling remaining row space) columns with wrapping capabilities.
+Web developers will be familiar with the concept of a 12 column grid system (Or Android devs may be more familiar with [GridLayout](https://developer.android.com/reference/android/widget/GridLayout)). This is a popular format for providing consistency in design that translates well to code. The columns can span any number of the 12 slots of the grid, offset to create space, and reorder independently of widget code order – all controllable with breakpoints to provide the best layout for the current screen. The toolkit provides a full-fledged responsive grid system including everything previously stated **as well as** auto-width and fill-width (filling remaining row space) columns with wrapping capabilities.
 
 <br />
 
@@ -360,7 +360,7 @@ You may be thinking "why can't I use a `Row` or `Wrap` for this?" The answer is 
 There are 3 types of columns which match expectations set by other frameworks and also provide ultimate layout flexibility.
 
 **Span**<br />
-A column that *spans* a portion of a 12 column grid. A span of 6 would mean it consumes half the width of the row.
+A column that *spans* a portion of a 12 column grid. A span of 6 would mean it consumes half the width of the row. Similar to Android's android:layout_columnSpan
 
 `ResponsiveColumn.span(span: 6, child: ...)`
 
