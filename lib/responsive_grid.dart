@@ -1,463 +1,239 @@
+import 'dart:developer';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
-import 'package:responsive_toolkit/breakpoints.dart';
+import 'package:responsive_toolkit/responsive_row.dart';
+import 'package:collection/collection.dart';
 
-/// A type of responsive column to determine layout in a [ResponsiveRow].
-enum ResponsiveColumnType { span, auto, fill }
+/// Parent data for use with [RenderResponsiveGrid]
+class ResponsiveGridParentData extends ContainerBoxParentData<RenderBox> {
+  int? columnStart;
+  int? columnSpan;
+  int? rowStart;
+  int? rowSpan;
+  int? zIndex;
 
-/// How [ResponsiveRow] should align objects.
-///
-/// Used both to align columns within a run in the main axis as well as to
-/// align the runs themselves in the cross axis.
-enum ResponsiveAlignment {
-  /// Place the objects as close to the start of the axis as possible.
-  start,
+  int get columnEnd => columnStart! + columnSpan! - 1;
+  int get rowEnd => rowStart! + rowSpan! - 1;
 
-  /// Place the objects as close to the end of the axis as possible.
-  end,
+  GridTrack? _column;
 
-  /// Place the objects as close to the middle of the axis as possible.
-  center,
-
-  /// Place the free space evenly between the objects.
-  spaceBetween,
-
-  /// Place the free space evenly between the objects as well as half of that
-  /// space before and after the first and last objects.
-  spaceAround,
-
-  /// Place the free space evenly between the objects as well as before and
-  /// after the first and last objects.
-  spaceEvenly,
+  /// Determines if col/row are both set. Fully positioned items are placed into the grid first,
+  /// then partially positioned, and lastly auto positioned.
+  bool get _isFullyPositioned => this.columnStart != null && this.rowStart != null;
+  bool get _isPartiallyPositioned =>
+      (this.columnStart == null || this.rowStart == null) && this.columnStart != this.rowStart;
 }
 
-/// How [Responsive] should align columns within a run in the cross axis.
-enum ResponsiveCrossAlignment {
-  /// Place the columns as close to the start of the run in the cross axis as
-  /// possible.
-  start,
-
-  /// Place the columns as close to the end of the run in the cross axis as
-  /// possible.
-  end,
-
-  /// Place the columns as close to the middle of the run in the cross axis as
-  /// possible.
-  center,
-
-  /// Each column will be made to match in height to the tallest column before
-  /// stetching. The columns will be placed to the start of the run in the cross
-  /// axis.
-  stretch,
-}
-
-/// A composable object allowing multiple defitions to be "stacked" where
-/// defined properties override existing properties.
-abstract class Composable<T> {
-  /// Creates a new [T] by composing non-null properties of this onto [base]s
-  /// with any completely undefined properties taken from [fallback]
-  T compose(List<T> base, [T fallback]);
-}
-
-/// A collection of [ResponsiveColumn] properties intended for use with
-/// `Breakpoints`.
-///
-/// If [span] is provided, [type] is automatically set to
-/// `ResponsiveColumnType.span`.
-///
-/// If [span] is provided and [type] is not `ResponsiveColumnType.span`, the
-/// [span] is ignored and will be treated as a [type] column.
-class ResponsiveColumnConfig implements Composable<ResponsiveColumnConfig> {
-  /// The type of column which controls how it fills the row
-  final ResponsiveColumnType? type;
-
-  /// The number of columns to span
-  final int? span;
-
-  /// The number of columns to offset (pushes from the left)
-  final int? offset;
-
-  /// The position of this column within [ResponsiveRow] relative to the [order]
-  /// property of the other columns.
-  final int? order;
-  final ResponsiveCrossAlignment? crossAxisAlignment;
-
-  /// Creates a definition for the display of a [ResponsiveColumn]
-  const ResponsiveColumnConfig({
-    final ResponsiveColumnType? type,
-    this.span,
-    this.offset,
-    this.order,
-    this.crossAxisAlignment,
-  }) : this.type = type ?? (span == null ? null : ResponsiveColumnType.span);
-
-  /// Creates a new `ResponsiveColumnConfig` by composing non-null properties of
-  /// this onto [base]s with any completely undefined properties taken from
-  /// [fallback]
-  @override
-  ResponsiveColumnConfig compose(List<ResponsiveColumnConfig> base,
-      [ResponsiveColumnConfig fallback =
-          const ResponsiveColumnConfig(type: ResponsiveColumnType.auto, span: 0, offset: 0, order: 0)]) {
-    List<ResponsiveColumnConfig> chain = base
-      ..insert(0, fallback)
-      ..add(this);
-    return chain.reduce(
-      (result, element) => ResponsiveColumnConfig(
-        type: element.type ?? result.type,
-        span: element.span ?? result.span,
-        offset: element.offset ?? result.offset,
-        order: element.order ?? result.order,
-        crossAxisAlignment: element.crossAxisAlignment ?? result.crossAxisAlignment,
-      ),
-    );
-  }
-
-  @override
-  String toString() {
-    return 'ResponsiveColumnConfig(type: $type, span: $span, offset: $offset, order: $order)';
-  }
-}
-
-/// A definition of a column's layout and child for use in [ResponsiveRow].
-class ResponsiveColumn {
-  /// The breakpoints at which the column's configurable properties can change.
-  final Breakpoints<ResponsiveColumnConfig> breakpoints;
-
-  /// The child to display in the column.
+class ResponsiveGridItem extends ParentDataWidget<ResponsiveGridParentData> {
+  final int? columnStart;
+  final int columnSpan;
+  final int? rowStart;
+  final int rowSpan;
+  final int zIndex;
   final Widget child;
 
-  /// Creates a consistent [ResponsiveColumn] from the multiple different ways
-  /// to call via other constructors.
-  ResponsiveColumn._({
-    required ResponsiveColumnType type,
-    int span = 0,
-    int offset = 0,
-    int order = 0,
-    ResponsiveCrossAlignment? crossAxisAlignment,
+  const ResponsiveGridItem({
+    Key? key,
+    this.columnStart,
+    this.columnSpan = 1,
+    this.rowStart,
+    this.rowSpan = 1,
+    this.zIndex = 0,
     required this.child,
-  }) : breakpoints = Breakpoints(
-          xs: ResponsiveColumnConfig(
-            type: type,
-            span: span,
-            offset: offset,
-            order: order,
-            crossAxisAlignment: crossAxisAlignment,
-          ),
-        );
+  })  : assert(columnStart == null || columnStart >= 0),
+        assert(rowStart == null || rowStart >= 0),
+        super(key: key, child: child);
 
-  /// Creates a responsive column with its properties defined in [breakpoints].
-  ResponsiveColumn(
-    this.breakpoints, {
-    required this.child,
-  });
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(IntProperty('columnStart', columnStart));
+    properties.add(IntProperty('columnSpan', columnSpan));
+    properties.add(IntProperty('rowStart', rowStart));
+    properties.add(IntProperty('rowSpan', rowSpan));
+    properties.add(IntProperty('zIndex', zIndex));
+  }
 
-  /// Creates a column that takes [span] columns of space in the run of a
-  /// [ResponsiveRow]
-  ResponsiveColumn.span({
-    required int span,
-    int offset = 0,
-    int order = 0,
-    ResponsiveCrossAlignment? crossAxisAlignment,
-    required Widget child,
-  }) : this._(
-          child: child,
-          type: ResponsiveColumnType.span,
-          offset: offset,
-          order: order,
-          span: span,
-          crossAxisAlignment: crossAxisAlignment,
-        );
+  @override
+  void applyParentData(RenderObject renderObject) {
+    assert(renderObject.parentData is ResponsiveGridParentData);
+    final ResponsiveGridParentData parentData = renderObject.parentData! as ResponsiveGridParentData;
+    bool needsLayout = false;
 
-  /// Creates a column that takes the space of its child in the run of a
-  /// [ResponsiveRow]
-  ResponsiveColumn.auto({
-    int offset = 0,
-    int order = 0,
-    ResponsiveCrossAlignment? crossAxisAlignment,
-    required Widget child,
-  }) : this._(
-          child: child,
-          type: ResponsiveColumnType.auto,
-          offset: offset,
-          order: order,
-          crossAxisAlignment: crossAxisAlignment,
-        );
+    if (parentData.columnStart != columnStart) {
+      parentData.columnStart = columnStart;
+      needsLayout = true;
+    }
+    if (parentData.columnSpan != columnSpan) {
+      parentData.columnSpan = columnSpan;
+      needsLayout = true;
+    }
+    if (parentData.rowStart != rowStart) {
+      parentData.rowStart = rowStart;
+      needsLayout = true;
+    }
+    if (parentData.rowSpan != rowSpan) {
+      parentData.rowSpan = rowSpan;
+      needsLayout = true;
+    }
+    if (parentData.zIndex != zIndex) {
+      parentData.zIndex = zIndex;
+      needsLayout = true;
+    }
 
-  /// Creates a column that fills the remaining space in the run of a
-  /// [ResponsiveRow]
-  ///
-  /// A fill column won't become smaller than the `minIntrinsicWidth` of its
-  /// child.
-  ///
-  /// If a run contains one or multiple fill columns, a column will not wrap
-  /// until all fill columns have been reduced to their smallest size based on
-  /// their children.
-  ResponsiveColumn.fill({
-    int offset = 0,
-    int order = 0,
-    ResponsiveCrossAlignment? crossAxisAlignment,
-    required Widget child,
-  }) : this._(
-          child: child,
-          type: ResponsiveColumnType.fill,
-          offset: offset,
-          order: order,
-          crossAxisAlignment: crossAxisAlignment,
-        );
+    if (needsLayout) {
+      final AbstractNode? targetParent = renderObject.parent;
+      if (targetParent is RenderObject) targetParent.markNeedsLayout();
+    }
+  }
+
+  @override
+  Type get debugTypicalAncestorWidgetClass => ResponsiveGrid;
 }
 
-/// The parent data used for row layout algorithm.
-class _ResponsiveWrapParentData extends ContainerBoxParentData<RenderBox> {
-  ResponsiveColumnConfig? _column;
-  double _minIntrinsicWidth = 0.0;
-  double _explicitWidth = 0.0;
+enum _GridTrackType { auto, fixed, flex, fraction }
+
+class GridTrack {
+  final _GridTrackType _type;
+  final double _value;
+
+  const GridTrack.auto()
+      : _value = 0,
+        _type = _GridTrackType.auto;
+
+  const GridTrack.fixed(double width)
+      : _value = width,
+        _type = _GridTrackType.fixed;
+
+  const GridTrack.flex([int factor = 1])
+      : _value = factor as double,
+        _type = _GridTrackType.flex;
+
+  const GridTrack.fraction(double fraction)
+      : _value = fraction,
+        _type = _GridTrackType.fraction;
 }
 
-/// Information about a run in a [ResponsiveRow]
-class _RunMetrics {
-  double mainAxisExtent = 0;
-  double crossAxisExtent = 0;
-  final List<RenderBox> children = [];
-}
-
-/// A series of [ResponsiveColumn] which lays out left to right, top to bottom,
-/// while wrapping columns based on their responsive grid properties.
-///
-/// By default, when using `Breakpoints`, the layout is based on the
-/// `MediaQuery.of(context).size.width`.
-class ResponsiveRow extends StatelessWidget {
-  /// A list of [ResponsiveColumn] objects which define the layout and children
-  /// of the row.
-  final List<ResponsiveColumn> columns;
-
-  /// The number of columns the grid system supports.
-  ///
-  /// Defaults to 12.
-  ///
-  /// This is not the number of columns that [columns] can hold, but instead the
-  /// number of columns the grid can support when using a [ResponsiveColumn]'s
-  /// [span] property and type.
-  final int maxColumns;
-
-  /// How the columns within a run should be placed in the main axis.
-  ///
-  /// For example, if [alignment] is [ResponsiveAlignment.center], the columns in
-  /// each run are grouped together in the center of their run in the main axis.
-  ///
-  /// Defaults to [ResponsiveAlignment.start].
-  ///
-  /// See also:
-  ///
-  ///  * [runAlignment], which controls how the runs are placed relative to each
-  ///    other in the cross axis.
-  ///  * [crossAxisAlignment], which controls how the columns within each run
-  ///    are placed relative to each other in the cross axis.
+class ResponsiveGrid extends StatelessWidget {
+  final List<GridTrack> columns;
+  final List<GridTrack> rows;
   final ResponsiveAlignment alignment;
-
-  /// How much space to place between columns in a run in the main axis.
-  ///
-  /// For example, if [spacing] is 10.0, the columns will be spaced at least
-  /// 10.0 logical pixels apart in the main axis.
-  ///
-  /// If there is additional free space in a run (e.g., because the row has a
-  /// minimum size that is not filled or because some runs are longer than
-  /// others), the additional free space will be allocated according to the
-  /// [alignment].
-  ///
-  /// Defaults to 0.0.
   final double spacing;
-
-  /// How the runs themselves should be placed in the cross axis.
-  ///
-  /// For example, if [runAlignment] is [ResponsiveAlignment.center], the runs are
-  /// grouped together in the center of the overall [ResponsiveRow] in the cross
-  /// axis.
-  ///
-  /// Defaults to [ResponsiveAlignment.start].
-  ///
-  /// See also:
-  ///
-  ///  * [alignment], which controls how the columns within each run are placed
-  ///    relative to each other in the main axis.
-  ///  * [crossAxisAlignment], which controls how the columns within each run
-  ///    are placed relative to each other in the cross axis.
   final ResponsiveAlignment runAlignment;
-
-  /// How much space to place between the runs themselves in the cross axis.
-  ///
-  /// For example, if [runSpacing] is 10.0, the runs will be spaced at least
-  /// 10.0 logical pixels apart in the cross axis.
-  ///
-  /// If there is additional free space (e.g., because the [ResponsiveRow] has a
-  /// minimum size that is not filled), the additional free space will be
-  /// allocated according to the [runAlignment].
-  ///
-  /// Defaults to 0.0.
-  final double runSpacing;
-
-  /// How the columns within a run should be aligned relative to each other in
-  /// the cross axis.
-  ///
-  /// For example, if this is set to [ResponsiveCrossAlignment.end], then the
-  /// children within each run will have their bottom edges aligned to the
-  /// bottom edge of the run.
-  ///
-  /// Defaults to [ResponsiveCrossAlignment.start].
-  ///
-  /// See also:
-  ///
-  ///  * [alignment], which controls how the columns within each run are placed
-  ///    relative to each other in the main axis.
-  ///  * [runAlignment], which controls how the runs are placed relative to each
-  ///    other in the cross axis.
   final ResponsiveCrossAlignment crossAxisAlignment;
-
-  /// How content that overflows the row is clipped.
-  ///
-  /// Defaults to `Clip.none`.
-  ///
-  /// e.g. if the constraints to the row force it smaller than the total height
-  /// of all its runs, some columns will overflow the bottom of the row.
   final Clip clipBehavior;
-
-  /// Whether to choose breakpoints for its columns based on incoming
-  /// constraints.
-  ///
-  /// Defaults to `false` (uses `MediaQuery.of(context).size.width`).
   final bool breakOnConstraints;
+  final List<ResponsiveGridItem> children;
 
-  /// Creates a row of responsive columns
-  ///
-  /// [maxColumns] must be greater than 1.
-  ResponsiveRow({
+  ResponsiveGrid({
     Key? key,
     required this.columns,
+    required this.rows,
     this.alignment = ResponsiveAlignment.start,
     this.spacing = 0.0,
     this.runAlignment = ResponsiveAlignment.start,
-    this.runSpacing = 0.0,
     this.crossAxisAlignment = ResponsiveCrossAlignment.start,
     this.clipBehavior = Clip.none,
     this.breakOnConstraints = false,
-    this.maxColumns = 12,
-  }) : assert(maxColumns > 1);
+    required List<Widget> children,
+  })  : assert(columns.length > 0),
+        children =
+            children.map((child) => child is ResponsiveGridItem ? child : ResponsiveGridItem(child: child)).toList(),
+        super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
-      builder: (context, constraints) => _ResponsiveRow(
+      builder: (context, constraints) => _ResponsiveGrid(
+        children: children,
         screenSize: breakOnConstraints ? constraints.biggest : MediaQuery.of(context).size,
         columns: columns,
         alignment: alignment,
         spacing: spacing,
         runAlignment: runAlignment,
-        runSpacing: runSpacing,
         crossAxisAlignment: crossAxisAlignment,
         clipBehavior: clipBehavior,
-        maxColumns: maxColumns,
       ),
     );
   }
 }
 
 /// The true responsive row containing layout logic to size based on children.
-class _ResponsiveRow extends MultiChildRenderObjectWidget {
-  final List<ResponsiveColumn> columns;
+class _ResponsiveGrid extends MultiChildRenderObjectWidget {
+  final List<GridTrack> columns;
   final ResponsiveAlignment alignment;
   final double spacing;
   final ResponsiveAlignment runAlignment;
-  final double runSpacing;
   final ResponsiveCrossAlignment crossAxisAlignment;
   final Clip clipBehavior;
   final Size screenSize;
-  final int maxColumns;
 
-  _ResponsiveRow({
+  _ResponsiveGrid({
     Key? key,
     required this.columns,
     required this.screenSize,
-    this.maxColumns = 12,
     this.alignment = ResponsiveAlignment.start,
     this.spacing = 0.0,
     this.runAlignment = ResponsiveAlignment.start,
-    this.runSpacing = 0.0,
     this.crossAxisAlignment = ResponsiveCrossAlignment.start,
     this.clipBehavior = Clip.none,
-  }) : super(key: key, children: columns.map((col) => col.child).toList());
+    required List<ResponsiveGridItem> children,
+  }) : super(key: key, children: children);
 
   @override
-  _ResponsiveRenderWrap createRenderObject(BuildContext context) {
-    return _ResponsiveRenderWrap(
+  RenderResponsiveGrid createRenderObject(BuildContext context) {
+    return RenderResponsiveGrid(
       screenSize: screenSize,
-      maxColumns: maxColumns,
       columns: columns,
       alignment: alignment,
       spacing: spacing,
       runAlignment: runAlignment,
-      runSpacing: runSpacing,
       crossAxisAlignment: crossAxisAlignment,
       clipBehavior: clipBehavior,
     );
   }
 
   @override
-  void updateRenderObject(BuildContext context, _ResponsiveRenderWrap renderObject) {
+  void updateRenderObject(BuildContext context, RenderResponsiveGrid renderObject) {
     renderObject
       ..screenSize = screenSize
-      ..maxColumns = maxColumns
       ..columns = columns
       ..alignment = alignment
       ..spacing = spacing
       ..runAlignment = runAlignment
-      ..runSpacing = runSpacing
       ..crossAxisAlignment = crossAxisAlignment
       ..clipBehavior = clipBehavior;
   }
 }
 
-/// A heavily modified version of wrap to support fill columns, breakpoints,
-/// and 12*-column grid.
-class _ResponsiveRenderWrap extends RenderBox
+class RenderResponsiveGrid extends RenderBox
     with
-        ContainerRenderObjectMixin<RenderBox, _ResponsiveWrapParentData>,
-        RenderBoxContainerDefaultsMixin<RenderBox, _ResponsiveWrapParentData> {
-  /// Creates a wrap render object.
-  ///
-  /// By default, the wrap layout is horizontal and both the children and the
-  /// runs are aligned to the start.
-  _ResponsiveRenderWrap({
-    required List<ResponsiveColumn> columns,
+        ContainerRenderObjectMixin<RenderBox, ResponsiveGridParentData>,
+        RenderBoxContainerDefaultsMixin<RenderBox, ResponsiveGridParentData> {
+  RenderResponsiveGrid({
+    required List<GridTrack> columns,
     required Size screenSize,
-    required int maxColumns,
     List<RenderBox>? children,
     ResponsiveAlignment alignment = ResponsiveAlignment.start,
     double spacing = 0.0,
     ResponsiveAlignment runAlignment = ResponsiveAlignment.start,
-    double runSpacing = 0.0,
     ResponsiveCrossAlignment crossAxisAlignment = ResponsiveCrossAlignment.start,
     Clip clipBehavior = Clip.none,
   })  : _screenSize = screenSize,
-        _maxColumns = maxColumns,
         _columns = columns,
         _alignment = alignment,
         _spacing = spacing,
         _runAlignment = runAlignment,
-        _runSpacing = runSpacing,
         _crossAxisAlignment = crossAxisAlignment,
         _clipBehavior = clipBehavior {
     addAll(children);
   }
 
-  int get maxColumns => _maxColumns;
-  int _maxColumns;
-  set maxColumns(int value) {
-    if (_maxColumns == value) return;
-    _maxColumns = value;
-    markNeedsLayout();
-  }
+  List<_Track> rowTracks = [];
+  List<_Track> colTracks = [];
 
   Size get screenSize => _screenSize;
   Size _screenSize;
@@ -467,9 +243,9 @@ class _ResponsiveRenderWrap extends RenderBox
     markNeedsLayout();
   }
 
-  List<ResponsiveColumn> get columns => _columns;
-  List<ResponsiveColumn> _columns;
-  set columns(List<ResponsiveColumn> value) {
+  List<GridTrack> get columns => _columns;
+  List<GridTrack> _columns;
+  set columns(List<GridTrack> value) {
     if (_columns == value) return;
     _columns = value;
     markNeedsLayout();
@@ -499,14 +275,6 @@ class _ResponsiveRenderWrap extends RenderBox
     markNeedsLayout();
   }
 
-  double get runSpacing => _runSpacing;
-  double _runSpacing;
-  set runSpacing(double value) {
-    if (_runSpacing == value) return;
-    _runSpacing = value;
-    markNeedsLayout();
-  }
-
   ResponsiveCrossAlignment get crossAxisAlignment => _crossAxisAlignment;
   ResponsiveCrossAlignment _crossAxisAlignment;
   set crossAxisAlignment(ResponsiveCrossAlignment value) {
@@ -527,9 +295,10 @@ class _ResponsiveRenderWrap extends RenderBox
 
   @override
   void setupParentData(RenderBox child) {
-    if (child.parentData is! _ResponsiveWrapParentData) child.parentData = _ResponsiveWrapParentData();
+    if (child.parentData is! ResponsiveGridParentData) child.parentData = ResponsiveGridParentData();
   }
 
+  // TODO: For all these, loop through all rows and its the min/max of the sums of their children
   @override
   double computeMinIntrinsicWidth(double height) {
     double width = 0.0;
@@ -567,14 +336,6 @@ class _ResponsiveRenderWrap extends RenderBox
     return defaultComputeDistanceToHighestActualBaseline(baseline);
   }
 
-  double _getMainAxisExtent(Size childSize) {
-    return childSize.width;
-  }
-
-  double _getCrossAxisExtent(Size childSize) {
-    return childSize.height;
-  }
-
   double _getChildCrossAxisOffset(
       ResponsiveColumnConfig column, double runCrossAxisExtent, double childCrossAxisExtent) {
     final double freeSpace = runCrossAxisExtent - childCrossAxisExtent;
@@ -588,20 +349,6 @@ class _ResponsiveRenderWrap extends RenderBox
       case ResponsiveCrossAlignment.center:
         return freeSpace / 2.0;
     }
-  }
-
-  double _getWidth(int size, double mainAxisLimit) {
-    return size / maxColumns * mainAxisLimit;
-  }
-
-  _ResponsiveWrapParentData _getParentData(RenderBox child) {
-    return child.parentData as _ResponsiveWrapParentData;
-  }
-
-  _resetParentData(RenderBox child) {
-    final parentData = child.parentData as _ResponsiveWrapParentData;
-    parentData._explicitWidth = 0.0;
-    parentData._minIntrinsicWidth = 0.0;
   }
 
   bool _hasVisualOverflow = false;
@@ -637,236 +384,185 @@ class _ResponsiveRenderWrap extends RenderBox
       return size;
     }
 
-    final double spacing = this.spacing;
-    final double runSpacing = this.runSpacing;
-    final List<_RunMetrics> runMetrics = [_RunMetrics()];
+    final int columnCount = columns.length;
+    final _Grid cells = _Grid(columnCount);
+    int maxRow = 0;
 
-    double mainAxisLimit = constraints.maxWidth + spacing;
-    double mainAxisExtent = 0.0;
-    double crossAxisExtent = 0.0;
-
-    int childIndex = 0;
-    // Choose breakpoints up front because order changes layout
+    // Allocate space to all children
     while (child != null) {
-      final childParentData = _getParentData(child);
-      childParentData._column = columns.elementAt(childIndex).breakpoints.choose(_screenSize.width);
-      assert(childParentData._column!.span! >= 0 && childParentData._column!.span! <= maxColumns,
-          'Column with config ${childParentData._column} has a span outside the range [0, $maxColumns]');
-      assert(childParentData._column!.offset! >= 0 && childParentData._column!.offset! < maxColumns,
-          'Column with config ${childParentData._column} has an offset outside the range [0, ${maxColumns - 1}]');
+      ResponsiveGridParentData childParentData = child.parentData as ResponsiveGridParentData;
+
+      cells.allocate(child);
+      childParentData._column = columns[childParentData.columnStart!];
+      maxRow = math.max(maxRow, childParentData.rowEnd);
+      log('$cells');
+
       child = childParentData.nextSibling;
-      childIndex++;
     }
 
-    getChildrenAsList()
-      ..sort((a, b) => _getParentData(a)._column!.order! - _getParentData(b)._column!.order!)
-      ..forEach((child) {
-        _resetParentData(child);
-        final _ResponsiveWrapParentData childParentData = _getParentData(child);
-        final ResponsiveColumnConfig column = childParentData._column!;
+    final double spacing = this.spacing;
+    double mainAxisLimit = constraints.maxWidth - (columnCount - 1) * spacing;
 
-        // The buffer space (offset and spacing) included for fit calculations
-        double buffer = _getWidth(column.offset!, mainAxisLimit) + spacing;
+    rowTracks = List.generate(maxRow + 1, (_) => _Track(Axis.horizontal));
+    colTracks = [];
+    int totalFlex = 0;
 
-        double childMainAxisExtent = 0.0;
-        double childCrossAxisExtent = 0.0;
-        if (column.type == ResponsiveColumnType.fill) {
-          childMainAxisExtent = child.getMinIntrinsicWidth(constraints.maxHeight);
-          childParentData._explicitWidth = childMainAxisExtent;
-          // Remember the min width for later to redistribute free space
-          childParentData._minIntrinsicWidth = childMainAxisExtent;
-          // For the purposes of "what fits" in the run, the buffer is included
-          childMainAxisExtent += buffer;
-        } else {
-          late final Size childSize;
-          if (column.type == ResponsiveColumnType.auto) {
-            // Auto columns are constrained to a full run width always
-            childSize = _layoutChild(child, BoxConstraints(maxWidth: constraints.maxWidth - buffer), dry: dry);
-            childParentData._explicitWidth = _getMainAxisExtent(childSize);
-            childMainAxisExtent = childParentData._explicitWidth + buffer;
-          }
-          // A span column is always the size it specifies (it's guaranteed to be < run width)
-          else {
-            childMainAxisExtent = _getWidth(column.span!, mainAxisLimit) - spacing;
-            childParentData._explicitWidth = childMainAxisExtent;
-            childSize = _layoutChild(child, BoxConstraints.tightFor(width: childMainAxisExtent), dry: dry);
-            childMainAxisExtent += buffer;
-          }
-          childCrossAxisExtent = _getCrossAxisExtent(childSize);
-        }
-
-        // Save some data for later on the child
-        childParentData._column = column;
-
-        // A column runs over the remaining space
-        if ((runMetrics.last.mainAxisExtent + childMainAxisExtent).roundToDouble() > mainAxisLimit.roundToDouble()) {
-          _layoutFillColumns(runMetrics.last, mainAxisLimit, dry: dry);
-          mainAxisExtent = math.max(mainAxisExtent, runMetrics.last.mainAxisExtent);
-          crossAxisExtent += runMetrics.last.crossAxisExtent + runSpacing;
-          runMetrics.add(_RunMetrics());
-        }
-
-        // Update run metrics
-        runMetrics.last
-          ..mainAxisExtent += childMainAxisExtent
-          ..crossAxisExtent = math.max(runMetrics.last.crossAxisExtent, childCrossAxisExtent)
-          ..children.add(child);
-      });
-
-    _layoutFillColumns(runMetrics.last, mainAxisLimit, dry: dry);
-    mainAxisExtent = math.max(mainAxisExtent, runMetrics.last.mainAxisExtent);
-    crossAxisExtent += runMetrics.last.crossAxisExtent;
-
-    final int runCount = runMetrics.length;
-
-    size = constraints.constrain(Size(mainAxisExtent, crossAxisExtent));
-    if (dry) return size;
-
-    double containerMainAxisExtent = size.width;
-    double containerCrossAxisExtent = size.height;
-
-    _hasVisualOverflow = containerMainAxisExtent < mainAxisExtent || containerCrossAxisExtent < crossAxisExtent;
-
-    final double crossAxisFreeSpace = math.max(0.0, containerCrossAxisExtent - crossAxisExtent);
-    double runLeadingSpace = 0.0;
-    double runBetweenSpace = 0.0;
-    switch (runAlignment) {
-      case ResponsiveAlignment.start:
-        break;
-      case ResponsiveAlignment.end:
-        runLeadingSpace = crossAxisFreeSpace;
-        break;
-      case ResponsiveAlignment.center:
-        runLeadingSpace = crossAxisFreeSpace / 2.0;
-        break;
-      case ResponsiveAlignment.spaceBetween:
-        runBetweenSpace = runCount > 1 ? crossAxisFreeSpace / (runCount - 1) : 0.0;
-        break;
-      case ResponsiveAlignment.spaceAround:
-        runBetweenSpace = crossAxisFreeSpace / runCount;
-        runLeadingSpace = runBetweenSpace / 2.0;
-        break;
-      case ResponsiveAlignment.spaceEvenly:
-        runBetweenSpace = crossAxisFreeSpace / (runCount + 1);
-        runLeadingSpace = runBetweenSpace;
-        break;
-    }
-
-    runBetweenSpace += runSpacing;
-    double crossAxisOffset = runLeadingSpace;
-
-    for (int i = 0; i < runCount; ++i) {
-      final _RunMetrics metrics = runMetrics[i];
-      final double runMainAxisExtent = metrics.mainAxisExtent;
-      final double runCrossAxisExtent = metrics.crossAxisExtent;
-      final int childCount = metrics.children.length;
-
-      final double mainAxisFreeSpace = math.max(0.0, containerMainAxisExtent - runMainAxisExtent + spacing);
-      double childLeadingSpace = 0.0;
-      double childBetweenSpace = 0.0;
-
-      switch (alignment) {
-        case ResponsiveAlignment.start:
-          break;
-        case ResponsiveAlignment.end:
-          childLeadingSpace = mainAxisFreeSpace;
-          break;
-        case ResponsiveAlignment.center:
-          childLeadingSpace = mainAxisFreeSpace / 2.0;
-          break;
-        case ResponsiveAlignment.spaceBetween:
-          childBetweenSpace = childCount > 1 ? mainAxisFreeSpace / (childCount - 1) : 0.0;
-          break;
-        case ResponsiveAlignment.spaceAround:
-          childBetweenSpace = mainAxisFreeSpace / childCount;
-          childLeadingSpace = childBetweenSpace / 2.0;
-          break;
-        case ResponsiveAlignment.spaceEvenly:
-          childBetweenSpace = mainAxisFreeSpace / (childCount + 1);
-          childLeadingSpace = childBetweenSpace;
-          break;
+    // find remaining space after fixed/fraction columns
+    double remainingSpace = mainAxisLimit;
+    columns.forEach((column) {
+      final _Track track = _Track(Axis.vertical);
+      colTracks.add(track);
+      if (column._type == _GridTrackType.fixed)
+        track.crossAxisExtent = column._value;
+      else if (column._type == _GridTrackType.fraction)
+        track.crossAxisExtent = mainAxisLimit * column._value;
+      else if (column._type == _GridTrackType.flex) {
+        // also count the total flex factor for later flex width calculations
+        totalFlex += column._value.toInt();
       }
+      remainingSpace -= track.crossAxisExtent;
+    });
 
-      childBetweenSpace += spacing;
-      double childMainPosition = childLeadingSpace;
-
-      metrics.children.forEach((child) {
-        final _ResponsiveWrapParentData childParentData = _getParentData(child);
-        final ResponsiveColumnConfig column = childParentData._column!;
-        final double childMainAxisOffset = _getWidth(childParentData._column!.offset!, mainAxisLimit);
-        final double childCrossAxisExtent = _getCrossAxisExtent(child.size);
-        final double childCrossAxisOffset = _getChildCrossAxisOffset(column, runCrossAxisExtent, childCrossAxisExtent);
-        childParentData.offset = Offset(
-          childMainPosition + childMainAxisOffset,
-          crossAxisOffset + childCrossAxisOffset,
-        );
-        childMainPosition += childParentData._explicitWidth + childMainAxisOffset + childBetweenSpace;
-
-        // If the cross axis is supposed to stretch – re-layout children that aren't full height
-        final align = column.crossAxisAlignment ?? crossAxisAlignment;
-        if (align == ResponsiveCrossAlignment.stretch && childCrossAxisExtent < runCrossAxisExtent) {
-          child.layout(BoxConstraints.tightFor(width: _getMainAxisExtent(child.size), height: runCrossAxisExtent));
-        }
-      });
-
-      crossAxisOffset += runCrossAxisExtent + runBetweenSpace;
+    if (remainingSpace < 0) {
+      throw ArgumentError('The size of fixed and fraction columns exceeds the constraints width');
     }
-  }
 
-  _layoutFillColumns(_RunMetrics run, double mainAxisLimit, {bool dry = false}) {
-    final fillColumns =
-        run.children.where((column) => _getParentData(column)._column!.type == ResponsiveColumnType.fill).toList();
+    // Spans of 1 contribute width to the crossAxisExtent of the track of the span type (col/row)
+    // Auto columns must have all its singular colSpan children laid out to dermine its width
+    // after that even flex columns are locked in.
 
-    // Fill columns in a single run are allowed to be different widths if their
-    // min width prevents one from getting smaller
-    // Remaining gets space gets distributed from smallest to largest until they
-    // are all equal width, then distributed further evenly among them.
-
-    if (fillColumns.length > 0) {
-      double freeSpace = mainAxisLimit - run.mainAxisExtent;
-
-      // Space distribution logic only matters when there's more than one in the row
-      if (fillColumns.length > 1) {
-        final List<RenderBox> sorted = List.from(fillColumns);
-        sorted.sort((a, b) {
-          final double diff = _getParentData(a)._minIntrinsicWidth - _getParentData(b)._minIntrinsicWidth;
-
-          return diff < 0 ? -1 : (diff > 0 ? 1 : 0);
-        });
-
-        for (int i = 0; i < sorted.length; i++) {
-          final double a = _getParentData(sorted[i])._minIntrinsicWidth;
-          final double b = i == sorted.length - 1 ? double.infinity : _getParentData(sorted[i + 1])._minIntrinsicWidth;
-          final double diff = b - a;
-          final int multiplier = i + 1;
-          final double adj = math.min(diff * multiplier, freeSpace);
-
-          for (int j = i; j >= 0; j--) {
-            final childParentData = _getParentData(sorted[j]);
-            childParentData._explicitWidth += adj / multiplier;
-          }
-          freeSpace -= adj;
-
-          if (freeSpace == 0) break;
-        }
-      } else {
-        _getParentData(fillColumns.first)._explicitWidth += freeSpace;
+    // First, size auto columns based on the children that exist completely within their crossAxis
+    child = firstChild;
+    while (child != null) {
+      ResponsiveGridParentData item = child.parentData as ResponsiveGridParentData;
+      if (item._column!._type == _GridTrackType.auto && item.columnSpan == 1) {
+        colTracks[item.columnStart!].update(child.getDryLayout(BoxConstraints()));
       }
+      child = item.nextSibling;
+      // if there is an auto column that does not satisfy the above, it has no width-driving
+      // children and would have a crossAxisExtent of 0.
+    }
 
-      fillColumns.forEach((child) {
-        final Size childSize =
-            _layoutChild(child, BoxConstraints.tightFor(width: _getParentData(child)._explicitWidth), dry: dry);
-        // Update run metrics now that a child in the run was sized
-        run.crossAxisExtent = math.max(run.crossAxisExtent, _getCrossAxisExtent(childSize));
-      });
-      // The run main axis is always full size because it had at least one fill column
-      run.mainAxisExtent = mainAxisLimit;
+    // At this point, all auto columns should have a crossAxisExtent that is their set width.
+    remainingSpace = mainAxisLimit;
+    colTracks.forEach((track) {
+      remainingSpace -= track.crossAxisExtent;
+    });
+
+    if (remainingSpace < 0) {
+      throw ArgumentError('No remaining space to distribute to flex columns.');
+    }
+    log('remaining space: $remainingSpace');
+
+    columns.forEachIndexed((index, column) {
+      final _Track track = colTracks[index];
+      switch (column._type) {
+        case _GridTrackType.fixed:
+          track.crossAxisExtent = column._value;
+          break;
+        case _GridTrackType.fraction:
+          track.crossAxisExtent = column._value * mainAxisLimit;
+          break;
+        case _GridTrackType.flex:
+          track.crossAxisExtent = column._value / totalFlex * remainingSpace;
+          break;
+        default: // auto has its crossAxisExtent set above
+          return;
+      }
+    });
+    // All column tracks have a crossAxisExtent set we can use to layout and determine heights
+    child = firstChild;
+    while (child != null) {
+      final ResponsiveGridParentData item = child.parentData as ResponsiveGridParentData;
+
+      // Add all tracks this child contributes its crossAxistExtent to
+      Iterable<_Track> spannedColTracks = colTracks.getRange(item.columnStart!, item.columnEnd + 1);
+      Iterable<_Track> spannedRowTracks = rowTracks.getRange(item.rowStart!, item.rowEnd + 1);
+
+      // find the total mainAxisExtent for all the columns the child crosses
+      double childMainAxisExtent = (spannedColTracks.length - 1) * spacing;
+      spannedColTracks.forEach((track) => childMainAxisExtent += track.crossAxisExtent);
+
+      final Size childSize = _layoutChild(child, BoxConstraints(maxWidth: childMainAxisExtent), dry: dry);
+
+      final int rowSpan = spannedRowTracks.length;
+      final double contribution = childSize.height / rowSpan - spacing * (rowSpan - 1);
+      spannedRowTracks.forEach((track) => track.update(Size(0, contribution)));
+      // log('[$index] $start:$end contributes $contribution to rows ${start.row}-${end.row}');
+
+      child = item.nextSibling;
+    }
+
+    colTracks.forEach((track) => log('col ${track.crossAxisExtent}'));
+    rowTracks.forEach((track) => log('row ${track.crossAxisExtent}'));
+
+    // calculate row and column offsets
+    double crossAxisExtent = 0.0;
+    colTracks.forEach((track) {
+      track.crossAxisOffset = crossAxisExtent;
+      crossAxisExtent += track.crossAxisExtent + spacing;
+    });
+    crossAxisExtent = 0.0;
+    rowTracks.forEach((track) {
+      track.crossAxisOffset = crossAxisExtent;
+      crossAxisExtent += track.crossAxisExtent + spacing;
+    });
+
+    Size mySize = constraints.constrain(Size(constraints.maxWidth, crossAxisExtent - spacing));
+    if (dry) return mySize;
+    size = mySize;
+
+    // Finally, relayout with new height restrictions based on row crossAxisExtent
+    child = firstChild;
+    while (child != null) {
+      final ResponsiveGridParentData item = child.parentData as ResponsiveGridParentData;
+      final Iterable<_Track> spannedRowTracks = rowTracks.getRange(item.rowStart!, item.rowEnd + 1);
+      // find the total crossAxisExtent for all the rows the child crosses
+      double childCrossAxisExtent = (spannedRowTracks.length - 1) * _spacing;
+      spannedRowTracks.forEach((track) => childCrossAxisExtent += track.crossAxisExtent);
+
+      _layoutChild(child, BoxConstraints(maxWidth: child.size.width, maxHeight: childCrossAxisExtent));
+
+      final _Track rowTrack = rowTracks[item.rowStart!];
+      final _Track colTrack = colTracks[item.columnStart!];
+
+      item.offset = Offset(colTrack.crossAxisOffset, rowTrack.crossAxisOffset);
+
+      // If the cross axis is supposed to stretch – re-layout children that aren't full height
+      // if (crossAxisAlignment == ResponsiveCrossAlignment.stretch && child.size.height < rowTrack.crossAxisExtent) {
+      //   child.layout(BoxConstraints.tightFor(width: child.size.width, height: rowTrack.crossAxisExtent));
+      // }
+
+      child = item.nextSibling;
     }
   }
 
   @override
   bool hitTestChildren(BoxHitTestResult result, {required Offset position}) {
     return defaultHitTestChildren(result, position: position);
+  }
+
+  @override
+  void debugPaintSize(PaintingContext context, Offset offset) {
+    super.debugPaintSize(context, offset);
+    assert(() {
+      final Paint fill = Paint()
+        ..color = Color(0x33FF0000)
+        ..style = PaintingStyle.fill;
+      final Paint stroke = Paint()
+        ..color = Color(0x66FF0000)
+        ..strokeWidth = 1
+        ..style = PaintingStyle.stroke;
+      colTracks.skip(1).forEach((track) {
+        final Rect gap = (offset + Offset(track.crossAxisOffset - _spacing, 0)) & Size(_spacing, size.height);
+        context.canvas..drawRect(gap, fill)..drawRect(gap.deflate(0.5), stroke);
+      });
+      rowTracks.skip(1).forEach((track) {
+        final Rect gap = (offset + Offset(0, track.crossAxisOffset - _spacing)) & Size(size.width, _spacing);
+        context.canvas..drawRect(gap, fill)..drawRect(gap.deflate(0.5), stroke);
+      });
+      return true;
+    }());
   }
 
   @override
@@ -891,11 +587,145 @@ class _ResponsiveRenderWrap extends RenderBox
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
-    properties.add(IterableProperty<ResponsiveColumn>('columns', columns));
+    properties.add(IterableProperty<GridTrack>('columns', columns));
     properties.add(EnumProperty<ResponsiveAlignment>('alignment', alignment));
     properties.add(DoubleProperty('spacing', spacing));
     properties.add(EnumProperty<ResponsiveAlignment>('runAlignment', runAlignment));
-    properties.add(DoubleProperty('runSpacing', runSpacing));
-    properties.add(DoubleProperty('crossAxisAlignment', runSpacing));
+    properties.add(EnumProperty<ResponsiveCrossAlignment>('crossAxisAlignment', crossAxisAlignment));
+  }
+}
+
+class _Track {
+  final List<RenderBox> children = [];
+  final Axis axis;
+  double crossAxisExtent = 0;
+  double crossAxisOffset = 0;
+  GridTrack? column;
+
+  _Track(this.axis);
+
+  add(RenderBox child, Size childSize) {
+    children.add(child);
+    update(childSize);
+  }
+
+  update(Size childSize) {
+    crossAxisExtent = math.max(crossAxisExtent, axis == Axis.horizontal ? childSize.height : childSize.width);
+  }
+}
+
+class _Grid {
+  final int columnCount;
+  final List<List<bool>> cells;
+
+  _Grid(this.columnCount) : cells = [List.generate(columnCount, (_) => false)];
+
+  _markTaken(RenderBox child) {
+    log('marking taken');
+    final ResponsiveGridParentData item = child.parentData as ResponsiveGridParentData;
+    _expand(item.rowEnd);
+    for (int y = item.rowStart!; y <= item.rowEnd; y++) {
+      for (int x = item.columnStart!; x <= item.columnEnd; x++) {
+        cells[y][x] = true;
+      }
+    }
+  }
+
+  bool checkTaken(_Cell from, [_Cell? to]) {
+    to = to ?? from;
+    _expand(to.row);
+    for (int y = from.row; y <= to.row; y++) {
+      for (int x = from.col; x <= to.col; x++) {
+        if (cells[y][x]) return true;
+      }
+    }
+    return false;
+  }
+
+  _expand(int row) {
+    if (row >= cells.length) {
+      cells.addAll(List.generate(row + 1 - cells.length, (_) => List.generate(columnCount, (_) => false)));
+    }
+  }
+
+  allocate(RenderBox child) {
+    ResponsiveGridParentData item = child.parentData as ResponsiveGridParentData;
+
+    if (item._isPartiallyPositioned) {
+      log('partially positioned');
+      if (item.columnStart != null) {
+        // column is locked, find a row that will fit the size
+        int y = 0;
+        // this will always complete by eventually creating new rows
+        while (true) {
+          _expand(y);
+          final _Cell position = _Cell(item.columnStart!, y++);
+          if (!checkTaken(position, position.span(item.columnSpan!, item.rowSpan!))) {
+            item.columnStart = position.col;
+            item.rowStart = position.row;
+            break;
+          }
+        }
+      } else {
+        // row is locked, find a column in the row that will fit the size
+        final int y = item.rowStart!;
+        _expand(y);
+        for (int x = 0; x < columnCount - item.columnSpan! + 1; x++) {
+          final _Cell position = _Cell(x, y);
+          if (!checkTaken(position, position.span(item.columnSpan!, item.rowSpan!))) {
+            item.columnStart = position.col;
+            item.rowStart = position.row;
+          }
+        }
+        throw ArgumentError('$item did not fit on row $y');
+      }
+    } else if (!item._isFullyPositioned) {
+      log('auto positioned');
+      // only other option is auto positioned, fully positioned do not call findSpace
+      int y = 0;
+      // this will always complete by eventually creating new rows
+      while (item.columnStart == null) {
+        _expand(y);
+        for (int x = 0; x < columnCount - item.columnSpan! + 1; x++) {
+          final _Cell position = _Cell(x, y);
+          if (!checkTaken(position, position.span(item.columnSpan!, item.rowSpan!))) {
+            item.columnStart = position.col;
+            item.rowStart = position.row;
+            break;
+          }
+        }
+        y++;
+      }
+    }
+
+    _markTaken(child);
+  }
+
+  @override
+  String toString() {
+    String result = '';
+    for (int y = 0; y < cells.length; y++) {
+      for (int x = 0; x < columnCount; x++) {
+        result += cells[y][x] ? 'X' : '_';
+      }
+      result += '\n';
+    }
+    return result;
+  }
+}
+
+class _Cell {
+  final int col;
+  final int row;
+
+  _Cell(this.col, this.row);
+
+  _Cell span(int colSpan, int rowSpan) {
+    return _Cell(col + colSpan - 1, row + rowSpan - 1);
+  }
+
+  @override
+  String toString() {
+    return '_Cell($col, $row)';
   }
 }

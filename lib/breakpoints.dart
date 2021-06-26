@@ -1,4 +1,4 @@
-import 'responsive_grid.dart';
+import 'responsive_row.dart';
 
 /// A set of breakpoints and associated values.
 ///
