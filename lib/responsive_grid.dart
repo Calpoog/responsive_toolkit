@@ -14,6 +14,7 @@ class ResponsiveGridParentData extends ContainerBoxParentData<RenderBox> {
   int? rowStart;
   int? rowSpan;
   int? zIndex;
+  ResponsiveCrossAlignment? crossAxisAlignment;
 
   int get columnEnd => columnStart! + columnSpan! - 1;
   int get rowEnd => rowStart! + rowSpan! - 1;
@@ -336,10 +337,10 @@ class RenderResponsiveGrid extends RenderBox
     return defaultComputeDistanceToHighestActualBaseline(baseline);
   }
 
-  double _getChildCrossAxisOffset(
-      ResponsiveColumnConfig column, double runCrossAxisExtent, double childCrossAxisExtent) {
-    final double freeSpace = runCrossAxisExtent - childCrossAxisExtent;
-    final ResponsiveCrossAlignment align = column.crossAxisAlignment ?? crossAxisAlignment;
+  double _getChildCrossAxisOffset(RenderBox child, double crossAxisExtent) {
+    final double freeSpace = crossAxisExtent - child.size.height;
+    final ResponsiveCrossAlignment align =
+        (child.parentData as ResponsiveGridParentData).crossAxisAlignment ?? crossAxisAlignment;
     switch (align) {
       case ResponsiveCrossAlignment.start:
       case ResponsiveCrossAlignment.stretch:
@@ -423,9 +424,7 @@ class RenderResponsiveGrid extends RenderBox
       remainingSpace -= track.crossAxisExtent;
     });
 
-    if (remainingSpace < 0) {
-      throw ArgumentError('The size of fixed and fraction columns exceeds the constraints width');
-    }
+    assert(remainingSpace >= 0, 'The size of fixed and fraction columns exceeds the constraints width');
 
     // Spans of 1 contribute width to the crossAxisExtent of the track of the span type (col/row)
     // Auto columns must have all its singular colSpan children laid out to dermine its width
@@ -449,10 +448,7 @@ class RenderResponsiveGrid extends RenderBox
       remainingSpace -= track.crossAxisExtent;
     });
 
-    if (remainingSpace < 0) {
-      throw ArgumentError('No remaining space to distribute to flex columns.');
-    }
-    log('remaining space: $remainingSpace');
+    assert(remainingSpace >= 0, 'No remaining space to distribute to flex columns.');
 
     columns.forEachIndexed((index, column) {
       final _Track track = colTracks[index];
@@ -518,20 +514,27 @@ class RenderResponsiveGrid extends RenderBox
       final ResponsiveGridParentData item = child.parentData as ResponsiveGridParentData;
       final Iterable<_Track> spannedRowTracks = rowTracks.getRange(item.rowStart!, item.rowEnd + 1);
       // find the total crossAxisExtent for all the rows the child crosses
-      double childCrossAxisExtent = (spannedRowTracks.length - 1) * _spacing;
-      spannedRowTracks.forEach((track) => childCrossAxisExtent += track.crossAxisExtent);
+      double spanCrossAxisExtent = (spannedRowTracks.length - 1) * _spacing;
+      spannedRowTracks.forEach((track) => spanCrossAxisExtent += track.crossAxisExtent);
 
-      _layoutChild(child, BoxConstraints(maxWidth: child.size.width, maxHeight: childCrossAxisExtent));
+      _layoutChild(
+        child,
+        BoxConstraints(
+          maxWidth: child.size.width,
+          maxHeight: spanCrossAxisExtent,
+          minHeight: crossAxisAlignment == ResponsiveCrossAlignment.stretch ? spanCrossAxisExtent : 0,
+        ),
+      );
 
       final _Track rowTrack = rowTracks[item.rowStart!];
       final _Track colTrack = colTracks[item.columnStart!];
-
-      item.offset = Offset(colTrack.crossAxisOffset, rowTrack.crossAxisOffset);
+      final double childCrossAxisOffset = _getChildCrossAxisOffset(child, spanCrossAxisExtent);
+      item.offset = Offset(colTrack.crossAxisOffset, rowTrack.crossAxisOffset + childCrossAxisOffset);
 
       // If the cross axis is supposed to stretch – re-layout children that aren't full height
-      // if (crossAxisAlignment == ResponsiveCrossAlignment.stretch && child.size.height < rowTrack.crossAxisExtent) {
-      //   child.layout(BoxConstraints.tightFor(width: child.size.width, height: rowTrack.crossAxisExtent));
-      // }
+      if (crossAxisAlignment == ResponsiveCrossAlignment.stretch && child.size.height < rowTrack.crossAxisExtent) {
+        child.layout(BoxConstraints.tightFor(width: child.size.width, height: rowTrack.crossAxisExtent));
+      }
 
       child = item.nextSibling;
     }
