@@ -34,6 +34,7 @@ class ResponsiveGridItem extends ParentDataWidget<ResponsiveGridParentData> {
   final int? rowStart;
   final int rowSpan;
   final int zIndex;
+  final ResponsiveCrossAlignment? crossAxisAlignment;
   final Widget child;
 
   const ResponsiveGridItem({
@@ -43,6 +44,7 @@ class ResponsiveGridItem extends ParentDataWidget<ResponsiveGridParentData> {
     this.rowStart,
     this.rowSpan = 1,
     this.zIndex = 0,
+    this.crossAxisAlignment,
     required this.child,
   })  : assert(columnStart == null || columnStart >= 0),
         assert(rowStart == null || rowStart >= 0),
@@ -56,6 +58,7 @@ class ResponsiveGridItem extends ParentDataWidget<ResponsiveGridParentData> {
     properties.add(IntProperty('rowStart', rowStart));
     properties.add(IntProperty('rowSpan', rowSpan));
     properties.add(IntProperty('zIndex', zIndex));
+    properties.add(EnumProperty<ResponsiveCrossAlignment>('crossAxisAlignment', crossAxisAlignment));
   }
 
   @override
@@ -82,6 +85,10 @@ class ResponsiveGridItem extends ParentDataWidget<ResponsiveGridParentData> {
     }
     if (parentData.zIndex != zIndex) {
       parentData.zIndex = zIndex;
+      needsLayout = true;
+    }
+    if (parentData.crossAxisAlignment != crossAxisAlignment) {
+      parentData.crossAxisAlignment = crossAxisAlignment;
       needsLayout = true;
     }
 
