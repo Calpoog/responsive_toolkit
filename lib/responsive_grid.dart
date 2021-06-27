@@ -129,9 +129,11 @@ class ResponsiveGrid extends StatelessWidget {
   final List<GridTrack> columns;
   final List<GridTrack> rows;
   final ResponsiveAlignment alignment;
-  final double spacing;
   final ResponsiveAlignment runAlignment;
   final ResponsiveCrossAlignment crossAxisAlignment;
+  final double spacing;
+  final double rowSpacing;
+  final double columnSpacing;
   final Clip clipBehavior;
   final bool breakOnConstraints;
   final List<ResponsiveGridItem> children;
@@ -141,13 +143,17 @@ class ResponsiveGrid extends StatelessWidget {
     required this.columns,
     required this.rows,
     this.alignment = ResponsiveAlignment.start,
-    this.spacing = 0.0,
     this.runAlignment = ResponsiveAlignment.start,
     this.crossAxisAlignment = ResponsiveCrossAlignment.start,
     this.clipBehavior = Clip.none,
     this.breakOnConstraints = false,
+    this.spacing = 0.0,
+    double? rowSpacing,
+    double? columnSpacing,
     required List<Widget> children,
   })  : assert(columns.length > 0),
+        rowSpacing = rowSpacing ?? spacing,
+        columnSpacing = columnSpacing ?? spacing,
         children =
             children.map((child) => child is ResponsiveGridItem ? child : ResponsiveGridItem(child: child)).toList(),
         super(key: key);
@@ -160,9 +166,10 @@ class ResponsiveGrid extends StatelessWidget {
         screenSize: breakOnConstraints ? constraints.biggest : MediaQuery.of(context).size,
         columns: columns,
         alignment: alignment,
-        spacing: spacing,
         runAlignment: runAlignment,
         crossAxisAlignment: crossAxisAlignment,
+        rowSpacing: rowSpacing,
+        columnSpacing: columnSpacing,
         clipBehavior: clipBehavior,
       ),
     );
@@ -173,9 +180,10 @@ class ResponsiveGrid extends StatelessWidget {
 class _ResponsiveGrid extends MultiChildRenderObjectWidget {
   final List<GridTrack> columns;
   final ResponsiveAlignment alignment;
-  final double spacing;
   final ResponsiveAlignment runAlignment;
   final ResponsiveCrossAlignment crossAxisAlignment;
+  final double rowSpacing;
+  final double columnSpacing;
   final Clip clipBehavior;
   final Size screenSize;
 
@@ -184,9 +192,10 @@ class _ResponsiveGrid extends MultiChildRenderObjectWidget {
     required this.columns,
     required this.screenSize,
     this.alignment = ResponsiveAlignment.start,
-    this.spacing = 0.0,
     this.runAlignment = ResponsiveAlignment.start,
     this.crossAxisAlignment = ResponsiveCrossAlignment.start,
+    this.rowSpacing = 0.0,
+    this.columnSpacing = 0.0,
     this.clipBehavior = Clip.none,
     required List<ResponsiveGridItem> children,
   }) : super(key: key, children: children);
@@ -197,9 +206,10 @@ class _ResponsiveGrid extends MultiChildRenderObjectWidget {
       screenSize: screenSize,
       columns: columns,
       alignment: alignment,
-      spacing: spacing,
       runAlignment: runAlignment,
       crossAxisAlignment: crossAxisAlignment,
+      rowSpacing: rowSpacing,
+      columnSpacing: columnSpacing,
       clipBehavior: clipBehavior,
     );
   }
@@ -210,9 +220,10 @@ class _ResponsiveGrid extends MultiChildRenderObjectWidget {
       ..screenSize = screenSize
       ..columns = columns
       ..alignment = alignment
-      ..spacing = spacing
       ..runAlignment = runAlignment
       ..crossAxisAlignment = crossAxisAlignment
+      ..rowSpacing = rowSpacing
+      ..columnSpacing = columnSpacing
       ..clipBehavior = clipBehavior;
   }
 }
@@ -226,14 +237,16 @@ class RenderResponsiveGrid extends RenderBox
     required Size screenSize,
     List<RenderBox>? children,
     ResponsiveAlignment alignment = ResponsiveAlignment.start,
-    double spacing = 0.0,
     ResponsiveAlignment runAlignment = ResponsiveAlignment.start,
     ResponsiveCrossAlignment crossAxisAlignment = ResponsiveCrossAlignment.start,
+    double rowSpacing = 0.0,
+    double columnSpacing = 0.0,
     Clip clipBehavior = Clip.none,
   })  : _screenSize = screenSize,
         _columns = columns,
         _alignment = alignment,
-        _spacing = spacing,
+        _rowSpacing = rowSpacing,
+        _columnSpacing = columnSpacing,
         _runAlignment = runAlignment,
         _crossAxisAlignment = crossAxisAlignment,
         _clipBehavior = clipBehavior {
@@ -267,11 +280,19 @@ class RenderResponsiveGrid extends RenderBox
     markNeedsLayout();
   }
 
-  double get spacing => _spacing;
-  double _spacing;
-  set spacing(double value) {
-    if (_spacing == value) return;
-    _spacing = value;
+  double get rowSpacing => _rowSpacing;
+  double _rowSpacing;
+  set rowSpacing(double value) {
+    if (_rowSpacing == value) return;
+    _rowSpacing = value;
+    markNeedsLayout();
+  }
+
+  double get columnSpacing => _columnSpacing;
+  double _columnSpacing;
+  set columnSpacing(double value) {
+    if (_columnSpacing == value) return;
+    _columnSpacing = value;
     markNeedsLayout();
   }
 
@@ -408,8 +429,7 @@ class RenderResponsiveGrid extends RenderBox
       child = childParentData.nextSibling;
     }
 
-    final double spacing = this.spacing;
-    double mainAxisLimit = constraints.maxWidth - (columnCount - 1) * spacing;
+    double mainAxisLimit = constraints.maxWidth - (columnCount - 1) * _columnSpacing;
 
     rowTracks = List.generate(maxRow + 1, (_) => _Track(Axis.horizontal));
     colTracks = [];
@@ -483,13 +503,13 @@ class RenderResponsiveGrid extends RenderBox
       Iterable<_Track> spannedRowTracks = rowTracks.getRange(item.rowStart!, item.rowEnd + 1);
 
       // find the total mainAxisExtent for all the columns the child crosses
-      double childMainAxisExtent = (spannedColTracks.length - 1) * spacing;
+      double childMainAxisExtent = (spannedColTracks.length - 1) * _columnSpacing;
       spannedColTracks.forEach((track) => childMainAxisExtent += track.crossAxisExtent);
 
       final Size childSize = _layoutChild(child, BoxConstraints(maxWidth: childMainAxisExtent), dry: dry);
 
       final int rowSpan = spannedRowTracks.length;
-      final double contribution = childSize.height / rowSpan - spacing * (rowSpan - 1);
+      final double contribution = childSize.height / rowSpan - _rowSpacing * (rowSpan - 1);
       spannedRowTracks.forEach((track) => track.update(Size(0, contribution)));
       // log('[$index] $start:$end contributes $contribution to rows ${start.row}-${end.row}');
 
@@ -503,15 +523,15 @@ class RenderResponsiveGrid extends RenderBox
     double crossAxisExtent = 0.0;
     colTracks.forEach((track) {
       track.crossAxisOffset = crossAxisExtent;
-      crossAxisExtent += track.crossAxisExtent + spacing;
+      crossAxisExtent += track.crossAxisExtent + _columnSpacing;
     });
     crossAxisExtent = 0.0;
     rowTracks.forEach((track) {
       track.crossAxisOffset = crossAxisExtent;
-      crossAxisExtent += track.crossAxisExtent + spacing;
+      crossAxisExtent += track.crossAxisExtent + _rowSpacing;
     });
 
-    Size mySize = constraints.constrain(Size(constraints.maxWidth, crossAxisExtent - spacing));
+    Size mySize = constraints.constrain(Size(constraints.maxWidth, crossAxisExtent - _rowSpacing));
     if (dry) return mySize;
     size = mySize;
 
@@ -521,7 +541,7 @@ class RenderResponsiveGrid extends RenderBox
       final ResponsiveGridParentData item = child.parentData as ResponsiveGridParentData;
       final Iterable<_Track> spannedRowTracks = rowTracks.getRange(item.rowStart!, item.rowEnd + 1);
       // find the total crossAxisExtent for all the rows the child crosses
-      double spanCrossAxisExtent = (spannedRowTracks.length - 1) * _spacing;
+      double spanCrossAxisExtent = (spannedRowTracks.length - 1) * _rowSpacing;
       spannedRowTracks.forEach((track) => spanCrossAxisExtent += track.crossAxisExtent);
 
       _layoutChild(
@@ -529,7 +549,9 @@ class RenderResponsiveGrid extends RenderBox
         BoxConstraints(
           maxWidth: child.size.width,
           maxHeight: spanCrossAxisExtent,
-          minHeight: crossAxisAlignment == ResponsiveCrossAlignment.stretch ? spanCrossAxisExtent : 0,
+          minHeight: (item.crossAxisAlignment ?? crossAxisAlignment) == ResponsiveCrossAlignment.stretch
+              ? spanCrossAxisExtent
+              : 0,
         ),
       );
 
@@ -537,11 +559,6 @@ class RenderResponsiveGrid extends RenderBox
       final _Track colTrack = colTracks[item.columnStart!];
       final double childCrossAxisOffset = _getChildCrossAxisOffset(child, spanCrossAxisExtent);
       item.offset = Offset(colTrack.crossAxisOffset, rowTrack.crossAxisOffset + childCrossAxisOffset);
-
-      // If the cross axis is supposed to stretch – re-layout children that aren't full height
-      if (crossAxisAlignment == ResponsiveCrossAlignment.stretch && child.size.height < rowTrack.crossAxisExtent) {
-        child.layout(BoxConstraints.tightFor(width: child.size.width, height: rowTrack.crossAxisExtent));
-      }
 
       child = item.nextSibling;
     }
@@ -564,11 +581,12 @@ class RenderResponsiveGrid extends RenderBox
         ..strokeWidth = 1
         ..style = PaintingStyle.stroke;
       colTracks.skip(1).forEach((track) {
-        final Rect gap = (offset + Offset(track.crossAxisOffset - _spacing, 0)) & Size(_spacing, size.height);
+        final Rect gap =
+            (offset + Offset(track.crossAxisOffset - _columnSpacing, 0)) & Size(_columnSpacing, size.height);
         context.canvas..drawRect(gap, fill)..drawRect(gap.deflate(0.5), stroke);
       });
       rowTracks.skip(1).forEach((track) {
-        final Rect gap = (offset + Offset(0, track.crossAxisOffset - _spacing)) & Size(size.width, _spacing);
+        final Rect gap = (offset + Offset(0, track.crossAxisOffset - _rowSpacing)) & Size(size.width, _rowSpacing);
         context.canvas..drawRect(gap, fill)..drawRect(gap.deflate(0.5), stroke);
       });
       return true;
@@ -599,7 +617,8 @@ class RenderResponsiveGrid extends RenderBox
     super.debugFillProperties(properties);
     properties.add(IterableProperty<GridTrack>('columns', columns));
     properties.add(EnumProperty<ResponsiveAlignment>('alignment', alignment));
-    properties.add(DoubleProperty('spacing', spacing));
+    properties.add(DoubleProperty('rowSpacing', rowSpacing));
+    properties.add(DoubleProperty('columnSpacing', columnSpacing));
     properties.add(EnumProperty<ResponsiveAlignment>('runAlignment', runAlignment));
     properties.add(EnumProperty<ResponsiveCrossAlignment>('crossAxisAlignment', crossAxisAlignment));
   }
