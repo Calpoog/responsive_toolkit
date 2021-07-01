@@ -421,6 +421,7 @@ class RenderResponsiveGrid extends RenderBox
   }
 
   Size? _performLayout({bool dry = false}) {
+    print('LAYOUT');
     final BoxConstraints constraints = this.constraints;
 
     _hasVisualOverflow = false;
@@ -435,14 +436,24 @@ class RenderResponsiveGrid extends RenderBox
     int rowCount = 0;
     final _Grid cells = _Grid(columnCount);
 
-    // Allocate space to all children
+    // Allocate fully positioned children first
     while (child != null) {
       final ResponsiveGridParentData childParentData = _getParentData(child);
+      if (childParentData._isFullyPositioned) {
+        cells.allocate(child);
+        rowCount = math.max(rowCount, childParentData.rowEnd + 1);
+      }
+      child = childParentData.nextSibling;
+    }
 
-      cells.allocate(child);
-      rowCount = math.max(rowCount, childParentData.rowEnd + 1);
-      // log('$cells');
-
+    // Allocate space to the rest of the children
+    child = firstChild;
+    while (child != null) {
+      final ResponsiveGridParentData childParentData = _getParentData(child);
+      if (!childParentData._isFullyPositioned) {
+        cells.allocate(child);
+        rowCount = math.max(rowCount, childParentData.rowEnd + 1);
+      }
       child = childParentData.nextSibling;
     }
 
