@@ -193,7 +193,7 @@ class GridTrack {
 /// A widget for laying out children in a grid where rows and columns can vary
 /// in size and grid items are configurable in placement. Works well with
 /// [Breakpoints] to change grid item placements and spans.
-class ResponsiveGrid extends StatelessWidget {
+class ResponsiveGrid extends MultiChildRenderObjectWidget {
   /// The column track definitions.
   ///
   /// At least one column is required and
@@ -234,78 +234,29 @@ class ResponsiveGrid extends StatelessWidget {
   /// How to clip items that fall outside the constraints of the grid.
   final Clip clipBehavior;
 
-  /// TODO: Do I need this?
-  final bool breakOnConstraints;
-
-  /// The grid items which fill the grid.
-  final List<ResponsiveGridItem> children;
-
-  /// Creates a grid for laying out items in a row and column format.
   ResponsiveGrid({
     Key? key,
-    required this.columns,
     required this.rows,
+    required this.columns,
     this.alignment = ResponsiveAlignment.start,
     this.crossAxisAlignment = ResponsiveCrossAlignment.start,
-    this.clipBehavior = Clip.none,
-    this.breakOnConstraints = false,
     this.spacing = 0.0,
     double? rowSpacing,
     double? columnSpacing,
-    required List<Widget> children,
+    this.clipBehavior = Clip.none,
+    required List<ResponsiveGridItem> children,
   })  : assert(columns.length > 0),
         rowSpacing = rowSpacing ?? spacing,
         columnSpacing = columnSpacing ?? spacing,
-        children =
-            children.map((child) => child is ResponsiveGridItem ? child : ResponsiveGridItem(child: child)).toList(),
-        super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) => _ResponsiveGrid(
-        children: children,
-        screenSize: breakOnConstraints ? constraints.biggest : MediaQuery.of(context).size,
-        columns: columns,
-        rows: rows,
-        alignment: alignment,
-        crossAxisAlignment: crossAxisAlignment,
-        rowSpacing: rowSpacing,
-        columnSpacing: columnSpacing,
-        clipBehavior: clipBehavior,
-      ),
-    );
-  }
-}
-
-/// The true responsive grid containing layout logic to size based on children.
-class _ResponsiveGrid extends MultiChildRenderObjectWidget {
-  final List<GridTrack> columns;
-  final List<GridTrack> rows;
-  final ResponsiveAlignment alignment;
-  final ResponsiveCrossAlignment crossAxisAlignment;
-  final double rowSpacing;
-  final double columnSpacing;
-  final Clip clipBehavior;
-  final Size screenSize;
-
-  _ResponsiveGrid({
-    Key? key,
-    required this.rows,
-    required this.columns,
-    required this.screenSize,
-    this.alignment = ResponsiveAlignment.start,
-    this.crossAxisAlignment = ResponsiveCrossAlignment.start,
-    this.rowSpacing = 0.0,
-    this.columnSpacing = 0.0,
-    this.clipBehavior = Clip.none,
-    required List<ResponsiveGridItem> children,
-  }) : super(key: key, children: children);
+        super(
+            key: key,
+            children: children
+                .map((child) => child is ResponsiveGridItem ? child : ResponsiveGridItem(child: child))
+                .toList());
 
   @override
   RenderResponsiveGrid createRenderObject(BuildContext context) {
     return RenderResponsiveGrid(
-      screenSize: screenSize,
       columns: columns,
       rows: rows,
       alignment: alignment,
@@ -319,7 +270,6 @@ class _ResponsiveGrid extends MultiChildRenderObjectWidget {
   @override
   void updateRenderObject(BuildContext context, RenderResponsiveGrid renderObject) {
     renderObject
-      ..screenSize = screenSize
       ..columns = columns
       ..rows = rows
       ..alignment = alignment
@@ -337,15 +287,13 @@ class RenderResponsiveGrid extends RenderBox
   RenderResponsiveGrid({
     required List<GridTrack> columns,
     required List<GridTrack> rows,
-    required Size screenSize,
     List<RenderBox>? children,
     ResponsiveAlignment alignment = ResponsiveAlignment.start,
     ResponsiveCrossAlignment crossAxisAlignment = ResponsiveCrossAlignment.start,
     double rowSpacing = 0.0,
     double columnSpacing = 0.0,
     Clip clipBehavior = Clip.none,
-  })  : _screenSize = screenSize,
-        _columns = columns,
+  })  : _columns = columns,
         _rows = rows,
         _alignment = alignment,
         _rowSpacing = rowSpacing,
@@ -357,14 +305,6 @@ class RenderResponsiveGrid extends RenderBox
 
   List<_Track> rowTracks = [];
   List<_Track> colTracks = [];
-
-  Size get screenSize => _screenSize;
-  Size _screenSize;
-  set screenSize(Size value) {
-    if (_screenSize == value) return;
-    _screenSize = value;
-    markNeedsLayout();
-  }
 
   List<GridTrack> get rows => _rows;
   List<GridTrack> _rows;
