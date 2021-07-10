@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -16,6 +15,7 @@ class ResponsiveGridParentData extends ContainerBoxParentData<RenderBox> {
   int? zIndex;
   ResponsiveCrossAlignment? crossAxisAlignment;
 
+  Size? _drySize;
   Iterable<_Track>? _spannedRowTracks;
   Iterable<_Track>? _spannedColTracks;
 
@@ -29,15 +29,50 @@ class ResponsiveGridParentData extends ContainerBoxParentData<RenderBox> {
       (this.columnStart == null || this.rowStart == null) && this.columnStart != this.rowStart;
 }
 
+/// An item that can span one or more columns and rows in a grid system.
 class ResponsiveGridItem extends ParentDataWidget<ResponsiveGridParentData> {
+  /// The 0-indexed column that this item starts it area in.
   final int? columnStart;
+
+  /// The number of columns this item spans.
+  ///
+  /// If the item has a [columnStart] of 1 and a [columnSpan] of 3, it fills
+  /// columns 1, 2 and 3.
   final int columnSpan;
+
+  // The 0-indexed row that this item starts it area in.
   final int? rowStart;
+
+  /// The number of rows this item spans.
+  ///
+  /// If the item has a [rowStart] of 1 and a [rowSpan] of 3, it fills
+  /// rows 1, 2 and 3.
   final int rowSpan;
+
+  /// The index used when multiple grid items overlap to determine which item
+  /// is shown in front.
+  ///
+  /// Fully-positioned (column and row starts defined) items are not allocated
+  /// by finding available space, and thus can overlap if their spans cross.
   final int zIndex;
+
+  /// The individual cross axis alignment for the item's child within the grid
+  /// area defined by the item.
+  ///
+  /// For instance, if the child of this item is 50dp tall but the grid area of
+  /// the item is 100dp, a [crossAxisAlignment] of
+  /// [ResponsiveCrossAlignment.center] would leave 25dp of space above and
+  /// below
   final ResponsiveCrossAlignment? crossAxisAlignment;
+
+  /// The child of the grid item.
+  ///
+  /// If the item is a spans only an auto-sized row or column, the child is
+  /// used in determining (the largest child in that row or column) the cross
+  /// axis size of the row or column.
   final Widget child;
 
+  /// Creates a grid item that spans a grid area.
   const ResponsiveGridItem({
     Key? key,
     this.columnStart,
@@ -103,20 +138,48 @@ class ResponsiveGridItem extends ParentDataWidget<ResponsiveGridParentData> {
   Type get debugTypicalAncestorWidgetClass => ResponsiveGrid;
 }
 
+/// The internal type to distinguish how a grid track is sized.
 enum _GridTrackType { auto, fixed, flex }
 
+/// A single track (a row or column) of a grid.
 class GridTrack {
   final _GridTrackType _type;
   final double _value;
 
+  /// Creates an auto-sized track.
+  ///
+  /// The track's cross axis size (height for rows, width for columns) will be
+  /// determined by the largest cross axis size of the children of grid items
+  /// that span only this track.
   const GridTrack.auto()
       : _value = 0,
         _type = _GridTrackType.auto;
 
-  const GridTrack.fixed(double width)
-      : _value = width,
+  /// Creates a fixed-sized track.
+  ///
+  /// This track cannot be smaller (height for rows, width for columns) than the
+  /// given [size] and will provide a max constraint to the children of items
+  /// in the track.
+  const GridTrack.fixed(double size)
+      : _value = size,
         _type = _GridTrackType.fixed;
 
+  /// Creates a flexible track.
+  ///
+  /// Factor defaults to 1.
+  ///
+  /// Multiple flexible tracks in an axis of a grid will have remaining space
+  /// divided among them based on the flex [factor].
+  ///
+  /// A flexible column will fill the remaining space in the horizontal
+  /// direction after fixed and auto sized columns are accounted for.
+  ///
+  /// A flexible row matches the heights of of other row's flex items also
+  /// including their [factor]. For instance: there are 3 flex rows with
+  /// factors 1, 1 and 2 and children determining their heights to be 50, 100
+  /// and 100. Their height to factor ratios would be 50, 100, and 50 and 100
+  /// would be used as factor 1. Their final row heights would be 100, 100 and
+  /// 200.
   const GridTrack.flex([int factor = 1])
       : _value = factor as double,
         _type = _GridTrackType.flex;
@@ -127,25 +190,62 @@ class GridTrack {
   }
 }
 
+/// A widget for laying out children in a grid where rows and columns can vary
+/// in size and grid items are configurable in placement. Works well with
+/// [Breakpoints] to change grid item placements and spans.
 class ResponsiveGrid extends StatelessWidget {
+  /// The column track definitions.
+  ///
+  /// At least one column is required and
   final List<GridTrack> columns;
+
+  /// The row track definitions.
+  ///
+  /// No row track definitions are required. As items fill available space in
+  /// the grid, new auto rows will be generated as required.
   final List<GridTrack> rows;
+
+  /// How children are aligned within the horizontal axis of a grid item.
+  ///
+  /// For instance, if a item spans multiple columns and takes up 400dp of space
+  /// but its child is only 200dp wide, 100dp of space will be distributed
+  /// on each side with an [alignment] of [ResponsiveAlignment.center]
   final ResponsiveAlignment alignment;
-  final ResponsiveAlignment runAlignment;
+
+  /// How children are aligned vertically within a grid item.
+  ///
+  /// For instance, if a row contains items with children of varying heights,
+  /// a [crossAxisAlignment] of [ResponsiveCrossAlignment.end] will align all
+  /// children to the bottom of their items (and thus, row).
   final ResponsiveCrossAlignment crossAxisAlignment;
+
+  /// The spacing between grid items (both vertically and horizontally)
+  ///
+  /// To control space between rows and columns separately, use [rowSpacing] and
+  /// [columnSpacing]
   final double spacing;
+
+  /// The spacing between rows in the grid
   final double rowSpacing;
+
+  /// The spacing between columns in the grid.
   final double columnSpacing;
+
+  /// How to clip items that fall outside the constraints of the grid.
   final Clip clipBehavior;
+
+  /// TODO: Do I need this?
   final bool breakOnConstraints;
+
+  /// The grid items which fill the grid.
   final List<ResponsiveGridItem> children;
 
+  /// Creates a grid for laying out items in a row and column format.
   ResponsiveGrid({
     Key? key,
     required this.columns,
     required this.rows,
     this.alignment = ResponsiveAlignment.start,
-    this.runAlignment = ResponsiveAlignment.start,
     this.crossAxisAlignment = ResponsiveCrossAlignment.start,
     this.clipBehavior = Clip.none,
     this.breakOnConstraints = false,
@@ -169,7 +269,6 @@ class ResponsiveGrid extends StatelessWidget {
         columns: columns,
         rows: rows,
         alignment: alignment,
-        runAlignment: runAlignment,
         crossAxisAlignment: crossAxisAlignment,
         rowSpacing: rowSpacing,
         columnSpacing: columnSpacing,
@@ -179,12 +278,11 @@ class ResponsiveGrid extends StatelessWidget {
   }
 }
 
-/// The true responsive row containing layout logic to size based on children.
+/// The true responsive grid containing layout logic to size based on children.
 class _ResponsiveGrid extends MultiChildRenderObjectWidget {
   final List<GridTrack> columns;
   final List<GridTrack> rows;
   final ResponsiveAlignment alignment;
-  final ResponsiveAlignment runAlignment;
   final ResponsiveCrossAlignment crossAxisAlignment;
   final double rowSpacing;
   final double columnSpacing;
@@ -197,7 +295,6 @@ class _ResponsiveGrid extends MultiChildRenderObjectWidget {
     required this.columns,
     required this.screenSize,
     this.alignment = ResponsiveAlignment.start,
-    this.runAlignment = ResponsiveAlignment.start,
     this.crossAxisAlignment = ResponsiveCrossAlignment.start,
     this.rowSpacing = 0.0,
     this.columnSpacing = 0.0,
@@ -212,7 +309,6 @@ class _ResponsiveGrid extends MultiChildRenderObjectWidget {
       columns: columns,
       rows: rows,
       alignment: alignment,
-      runAlignment: runAlignment,
       crossAxisAlignment: crossAxisAlignment,
       rowSpacing: rowSpacing,
       columnSpacing: columnSpacing,
@@ -227,7 +323,6 @@ class _ResponsiveGrid extends MultiChildRenderObjectWidget {
       ..columns = columns
       ..rows = rows
       ..alignment = alignment
-      ..runAlignment = runAlignment
       ..crossAxisAlignment = crossAxisAlignment
       ..rowSpacing = rowSpacing
       ..columnSpacing = columnSpacing
@@ -245,7 +340,6 @@ class RenderResponsiveGrid extends RenderBox
     required Size screenSize,
     List<RenderBox>? children,
     ResponsiveAlignment alignment = ResponsiveAlignment.start,
-    ResponsiveAlignment runAlignment = ResponsiveAlignment.start,
     ResponsiveCrossAlignment crossAxisAlignment = ResponsiveCrossAlignment.start,
     double rowSpacing = 0.0,
     double columnSpacing = 0.0,
@@ -256,7 +350,6 @@ class RenderResponsiveGrid extends RenderBox
         _alignment = alignment,
         _rowSpacing = rowSpacing,
         _columnSpacing = columnSpacing,
-        _runAlignment = runAlignment,
         _crossAxisAlignment = crossAxisAlignment,
         _clipBehavior = clipBehavior {
     addAll(children);
@@ -310,14 +403,6 @@ class RenderResponsiveGrid extends RenderBox
   set columnSpacing(double value) {
     if (_columnSpacing == value) return;
     _columnSpacing = value;
-    markNeedsLayout();
-  }
-
-  ResponsiveAlignment get runAlignment => _runAlignment;
-  ResponsiveAlignment _runAlignment;
-  set runAlignment(ResponsiveAlignment value) {
-    if (_runAlignment == value) return;
-    _runAlignment = value;
     markNeedsLayout();
   }
 
@@ -436,6 +521,9 @@ class RenderResponsiveGrid extends RenderBox
     int rowCount = 0;
     final _Grid cells = _Grid(columnCount);
 
+    // TODO: implicit columns? Find greatest columnEnd and create missing columns
+    // with auto. Flex beyond constraints would be auto
+
     // Allocate fully positioned children first
     while (child != null) {
       final ResponsiveGridParentData childParentData = _getParentData(child);
@@ -490,7 +578,8 @@ class RenderResponsiveGrid extends RenderBox
       item._spannedRowTracks = rowTracks.getRange(item.rowStart!, item.rowEnd + 1);
 
       if (columns[item.columnStart!]._type == _GridTrackType.auto && item.columnSpan == 1) {
-        colTracks[item.columnStart!].update(child.getDryLayout(BoxConstraints()));
+        item._drySize = child.getDryLayout(BoxConstraints());
+        colTracks[item.columnStart!].update(item._drySize!);
       }
       child = item.nextSibling;
       // if there is an auto column that does not satisfy the above, it has no width-driving
@@ -505,7 +594,7 @@ class RenderResponsiveGrid extends RenderBox
       // If it spans a flex at all, move on
       if (item._spannedColTracks!.any((track) => track.definition._type == _GridTrackType.flex)) return;
 
-      final Size childSize = child.getDryLayout(BoxConstraints());
+      item._drySize ??= child.getDryLayout(BoxConstraints());
 
       final Iterable<_Track> spannedAutoColTracks =
           item._spannedColTracks!.where((track) => track.definition._type == _GridTrackType.auto);
@@ -515,7 +604,7 @@ class RenderResponsiveGrid extends RenderBox
       });
 
       final double contribution =
-          (childSize.width - _columnSpacing * (item.columnSpan! - 1) - spannedWidth) / item.columnSpan!;
+          (item._drySize!.width - _columnSpacing * (item.columnSpan! - 1) - spannedWidth) / item.columnSpan!;
 
       print('col spans ${item.columnSpan}, width $spannedWidth, contributes $contribution');
 
@@ -559,13 +648,22 @@ class RenderResponsiveGrid extends RenderBox
     });
 
     // Size auto rows based on the children that exist completely within their crossAxis
+    // Also find the flex basis for flex rows (max of: auto height / flex factor)
+    double maxHeightFlex = 0.0;
     child = firstChild;
     while (child != null) {
       final ResponsiveGridParentData item = _getParentData(child);
-
-      if (rows[item.rowStart!]._type == _GridTrackType.auto && item.rowSpan == 1) {
-        rowTracks[item.rowStart!].update(child.getDryLayout(BoxConstraints()));
+      final GridTrack row = rows[item.rowStart!];
+      if (row._type == _GridTrackType.auto && item.rowSpan == 1) {
+        item._drySize ??= child.getDryLayout(BoxConstraints());
+        rowTracks[item.rowStart!].update(item._drySize!);
       }
+
+      if (row._type == _GridTrackType.flex && item.rowSpan == 1) {
+        item._drySize ??= child.getDryLayout(BoxConstraints());
+        maxHeightFlex = math.max(maxHeightFlex, item._drySize!.height / row._value);
+      }
+
       child = item.nextSibling;
     }
 
@@ -577,7 +675,7 @@ class RenderResponsiveGrid extends RenderBox
       // If it spans a flex row at all, move on
       if (item._spannedColTracks!.any((track) => track.definition._type == _GridTrackType.flex)) return;
 
-      final Size childSize = child.getDryLayout(BoxConstraints());
+      item._drySize ??= child.getDryLayout(BoxConstraints());
 
       final Iterable<_Track> spannedAutoRowTracks =
           item._spannedRowTracks!.where((track) => track.definition._type == _GridTrackType.auto);
@@ -591,10 +689,10 @@ class RenderResponsiveGrid extends RenderBox
       });
 
       final double contribution =
-          (childSize.height - _rowSpacing * (item.rowSpan! - 1) - spannedHeight) / spannedAutoRowTracks.length;
+          (item._drySize!.height - _rowSpacing * (item.rowSpan! - 1) - spannedHeight) / spannedAutoRowTracks.length;
 
       print(
-          'row spans ${spannedAutoRowTracks.length} (${childSize.height}), spans height $spannedHeight, contributes $contribution');
+          'row spans ${spannedAutoRowTracks.length} (${item._drySize!.height}), spans height $spannedHeight, contributes $contribution');
 
       if (contribution <= 0) return;
       spannedAutoRowTracks.forEach((track) {
@@ -610,39 +708,12 @@ class RenderResponsiveGrid extends RenderBox
           track.crossAxisExtent = row._value;
           break;
         case _GridTrackType.flex:
-          // TODO: flex is based off the largest thing as "flex 1"
-          track.crossAxisExtent = row._value / totalFlex * remainingSpace;
+          track.crossAxisExtent = row._value * maxHeightFlex;
           break;
         default:
           return;
       }
     });
-
-    // child = firstChild;
-    // while (child != null) {
-    //   final ResponsiveGridParentData item = child.parentData as ResponsiveGridParentData;
-
-    //   // Add all tracks this child contributes its crossAxistExtent to
-    //   final Iterable<_Track> spannedColTracks = colTracks.getRange(item.columnStart!, item.columnEnd + 1);
-    //   final Iterable<_Track> spannedRowTracks = rowTracks.getRange(item.rowStart!, item.rowEnd + 1);
-
-    //   // find the total mainAxisExtent for all the columns the child crosses
-    //   double childMainAxisExtent = (spannedColTracks.length - 1) * _columnSpacing;
-    //   spannedColTracks.forEach((track) => childMainAxisExtent += track.crossAxisExtent);
-
-    //   final Size childSize = _layoutChild(child, BoxConstraints(maxWidth: childMainAxisExtent), dry: dry);
-
-    //   // Contribute height evenly among spanned auto rows
-    //   final int rowSpan = spannedRowTracks.length;
-    //   final Iterable<_Track> spannedAutoRowTracks =
-    //       spannedRowTracks.where((track) => rows[track.index]._type == _GridTrackType.auto);
-    //   spannedAutoRowTracks.forEach((track) {
-    //     final double contribution = (childSize.height - _rowSpacing * (rowSpan - 1)) / rowSpan;
-    //     track.update(Size(0, contribution));
-    //   });
-
-    //   child = item.nextSibling;
-    // }
 
     // calculate row and column offsets
     double crossAxisExtent = 0.0;
@@ -749,7 +820,6 @@ class RenderResponsiveGrid extends RenderBox
     properties.add(DoubleProperty('rowSpacing', rowSpacing));
     properties.add(DoubleProperty('columnSpacing', columnSpacing));
     properties.add(EnumProperty<ResponsiveAlignment>('alignment', alignment));
-    properties.add(EnumProperty<ResponsiveAlignment>('runAlignment', runAlignment));
     properties.add(EnumProperty<ResponsiveCrossAlignment>('crossAxisAlignment', crossAxisAlignment));
   }
 }
@@ -762,12 +832,7 @@ class _Track {
   double crossAxisOffset = 0;
   final GridTrack definition;
 
-  _Track(this.index, this.definition, this.axis) {
-    if (axis == Axis.horizontal) {
-      // TODO: What happens if a column or row spans multiple
-      // columns/rows and one of them is type flex???
-    }
-  }
+  _Track(this.index, this.definition, this.axis);
 
   update(Size childSize) {
     crossAxisExtent = math.max(crossAxisExtent, axis == Axis.horizontal ? childSize.height : childSize.width);
