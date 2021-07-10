@@ -779,6 +779,10 @@ class RenderResponsiveGrid extends RenderBox
         ..color = Color(0x66FF0000)
         ..strokeWidth = 1
         ..style = PaintingStyle.stroke;
+      final Paint itemStroke = Paint()
+        ..color = Color(0x668800FF)
+        ..strokeWidth = 2
+        ..style = PaintingStyle.stroke;
       colTracks.skip(1).forEach((track) {
         final Rect gap =
             (offset + Offset(track.crossAxisOffset - _columnSpacing, 0)) & Size(_columnSpacing, size.height);
@@ -787,6 +791,20 @@ class RenderResponsiveGrid extends RenderBox
       rowTracks.skip(1).forEach((track) {
         final Rect gap = (offset + Offset(0, track.crossAxisOffset - _rowSpacing)) & Size(size.width, _rowSpacing);
         context.canvas..drawRect(gap, fill)..drawRect(gap.deflate(0.5), stroke);
+      });
+      getChildrenAsList().forEach((child) {
+        ResponsiveGridParentData item = _getParentData(child);
+        final Rect rect = Rect.fromPoints(
+            offset +
+                Offset(colTracks.elementAt(item.columnStart!).crossAxisOffset,
+                    rowTracks.elementAt(item.rowStart!).crossAxisOffset),
+            offset +
+                Offset(
+                    colTracks.elementAt(item.columnEnd).crossAxisOffset +
+                        colTracks.elementAt(item.columnEnd).crossAxisExtent,
+                    rowTracks.elementAt(item.rowEnd).crossAxisOffset +
+                        rowTracks.elementAt(item.rowEnd).crossAxisExtent));
+        context.canvas.drawRect(rect.deflate(1), itemStroke);
       });
       return true;
     }());
