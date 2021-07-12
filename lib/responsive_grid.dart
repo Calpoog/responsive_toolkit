@@ -27,6 +27,7 @@ class ResponsiveGridParentData extends ContainerBoxParentData<RenderBox> {
   bool get _isFullyPositioned => this.columnStart != null && this.rowStart != null;
   bool get _isPartiallyPositioned =>
       (this.columnStart == null || this.rowStart == null) && this.columnStart != this.rowStart;
+  bool get _isAutoPositioned => this.columnStart == null && this.rowStart == null;
 }
 
 /// An item that can span one or more columns and rows in a grid system.
@@ -369,27 +370,18 @@ class RenderResponsiveGrid extends RenderBox
     if (child.parentData is! ResponsiveGridParentData) child.parentData = ResponsiveGridParentData();
   }
 
-  // TODO: For all these, loop through all rows and its the min/max of the sums of their children
+  /// For simplicity sake, min and max intrinsics are its layout size.
+  ///
+  /// Otherwise it would take doing the entire layout algorithm with the min
+  /// intrinsic heights of the children to determine row extents.
   @override
   double computeMinIntrinsicWidth(double height) {
-    double width = 0.0;
-    RenderBox? child = firstChild;
-    while (child != null) {
-      width = math.max(width, child.getMinIntrinsicWidth(double.infinity));
-      child = childAfter(child);
-    }
-    return width;
+    return computeDryLayout(BoxConstraints(maxHeight: height)).width;
   }
 
   @override
   double computeMaxIntrinsicWidth(double height) {
-    double width = 0.0;
-    RenderBox? child = firstChild;
-    while (child != null) {
-      width += child.getMaxIntrinsicWidth(double.infinity);
-      child = childAfter(child);
-    }
-    return width;
+    return computeDryLayout(BoxConstraints(maxHeight: height)).width;
   }
 
   @override
@@ -446,7 +438,6 @@ class RenderResponsiveGrid extends RenderBox
   }
 
   Size? _performLayout({bool dry = false}) {
-    print('LAYOUT');
     final BoxConstraints constraints = this.constraints;
 
     _hasVisualOverflow = false;
@@ -461,28 +452,35 @@ class RenderResponsiveGrid extends RenderBox
     int rowCount = 0;
     final _Grid cells = _Grid(columnCount);
 
-    // TODO: implicit columns? Find greatest columnEnd and create missing columns
-    // with auto. Flex beyond constraints would be auto
-
     // Allocate fully positioned children first
     while (child != null) {
-      final ResponsiveGridParentData childParentData = _getParentData(child);
-      if (childParentData._isFullyPositioned) {
+      final ResponsiveGridParentData item = _getParentData(child);
+      if (item._isFullyPositioned) {
         cells.allocate(child);
-        rowCount = math.max(rowCount, childParentData.rowEnd + 1);
+        rowCount = math.max(rowCount, item.rowEnd + 1);
       }
-      child = childParentData.nextSibling;
+      child = item.nextSibling;
+    }
+
+    // Allocate partially positioned children next
+    while (child != null) {
+      final ResponsiveGridParentData item = _getParentData(child);
+      if (item._isPartiallyPositioned) {
+        cells.allocate(child);
+        rowCount = math.max(rowCount, item.rowEnd + 1);
+      }
+      child = item.nextSibling;
     }
 
     // Allocate space to the rest of the children
     child = firstChild;
     while (child != null) {
-      final ResponsiveGridParentData childParentData = _getParentData(child);
-      if (!childParentData._isFullyPositioned) {
+      final ResponsiveGridParentData item = _getParentData(child);
+      if (!item._isAutoPositioned) {
         cells.allocate(child);
-        rowCount = math.max(rowCount, childParentData.rowEnd + 1);
+        rowCount = math.max(rowCount, item.rowEnd + 1);
       }
-      child = childParentData.nextSibling;
+      child = item.nextSibling;
     }
 
     double mainAxisLimit = constraints.maxWidth - (columnCount - 1) * _columnSpacing;
@@ -546,8 +544,6 @@ class RenderResponsiveGrid extends RenderBox
       final double contribution =
           (item._drySize!.width - _columnSpacing * (item.columnSpan! - 1) - spannedWidth) / item.columnSpan!;
 
-      print('col spans ${item.columnSpan}, width $spannedWidth, contributes $contribution');
-
       if (contribution <= 0) return;
       spannedAutoColTracks.forEach((track) {
         track.crossAxisExtent += contribution;
@@ -565,15 +561,8 @@ class RenderResponsiveGrid extends RenderBox
     // Set remaining crossAxisExtents for all columns
     columns.forEachIndexed((index, column) {
       final _Track track = colTracks[index];
-      switch (column._type) {
-        case _GridTrackType.fixed:
-          track.crossAxisExtent = column._value;
-          break;
-        case _GridTrackType.flex:
-          track.crossAxisExtent = column._value / totalFlex * remainingSpace;
-          break;
-        default: // auto has its crossAxisExtent set above
-          return;
+      if (column._type == _GridTrackType.flex) {
+        track.crossAxisExtent = column._value / totalFlex * remainingSpace;
       }
     });
 
@@ -594,14 +583,16 @@ class RenderResponsiveGrid extends RenderBox
     while (child != null) {
       final ResponsiveGridParentData item = _getParentData(child);
       final GridTrack row = rows[item.rowStart!];
-      if (row._type == _GridTrackType.auto && item.rowSpan == 1) {
-        item._drySize ??= child.getDryLayout(BoxConstraints());
-        rowTracks[item.rowStart!].update(item._drySize!);
-      }
+      if (item.rowSpan == 1) {
+        if (row._type == _GridTrackType.auto) {
+          item._drySize ??= child.getDryLayout(BoxConstraints());
+          rowTracks[item.rowStart!].update(item._drySize!);
+        }
 
-      if (row._type == _GridTrackType.flex && item.rowSpan == 1) {
-        item._drySize ??= child.getDryLayout(BoxConstraints());
-        maxHeightFlex = math.max(maxHeightFlex, item._drySize!.height / row._value);
+        if (row._type == _GridTrackType.flex) {
+          item._drySize ??= child.getDryLayout(BoxConstraints());
+          maxHeightFlex = math.max(maxHeightFlex, item._drySize!.height / row._value);
+        }
       }
 
       child = item.nextSibling;
@@ -613,7 +604,7 @@ class RenderResponsiveGrid extends RenderBox
     rowSpans.forEach((child) {
       final ResponsiveGridParentData item = _getParentData(child);
       // If it spans a flex row at all, move on
-      if (item._spannedColTracks!.any((track) => track.definition._type == _GridTrackType.flex)) return;
+      if (item._spannedRowTracks!.any((track) => track.definition._type == _GridTrackType.flex)) return;
 
       item._drySize ??= child.getDryLayout(BoxConstraints());
 
@@ -625,14 +616,10 @@ class RenderResponsiveGrid extends RenderBox
       double spannedHeight = 0.0;
       item._spannedRowTracks!.forEach((track) {
         spannedHeight += track.crossAxisExtent;
-        print('spans a row ${track.definition._type} with ${track.crossAxisExtent}');
       });
 
       final double contribution =
           (item._drySize!.height - _rowSpacing * (item.rowSpan! - 1) - spannedHeight) / spannedAutoRowTracks.length;
-
-      print(
-          'row spans ${spannedAutoRowTracks.length} (${item._drySize!.height}), spans height $spannedHeight, contributes $contribution');
 
       if (contribution <= 0) return;
       spannedAutoRowTracks.forEach((track) {
@@ -643,15 +630,8 @@ class RenderResponsiveGrid extends RenderBox
     // Set remaining crossAxisExtents for rows.
     rows.forEachIndexed((index, row) {
       final _Track track = rowTracks[index];
-      switch (row._type) {
-        case _GridTrackType.fixed:
-          track.crossAxisExtent = row._value;
-          break;
-        case _GridTrackType.flex:
-          track.crossAxisExtent = row._value * maxHeightFlex;
-          break;
-        default:
-          return;
+      if (row._type == _GridTrackType.flex) {
+        track.crossAxisExtent = row._value * maxHeightFlex;
       }
     });
 
@@ -838,6 +818,11 @@ class _Grid {
   allocate(RenderBox child) {
     final ResponsiveGridParentData item = _getParentData(child);
 
+    if (item.columnSpan! > columnCount) {
+      throw RangeError(
+          'Grid item (columnStart: ${item.columnStart}, columnSpan: ${item.columnSpan}, rowStart: ${item.rowStart}, rowSpan: ${item.rowSpan}) spans more columns than are available');
+    }
+
     if (item._isPartiallyPositioned) {
       if (item.columnStart != null) {
         // column is locked, find a row that will fit the size
@@ -865,8 +850,8 @@ class _Grid {
           }
         }
         if (item.columnStart == null) {
-          throw ArgumentError(
-              '${item.columnStart} ${item.columnSpan} ${item.rowStart} ${item.rowSpan} did not fit on row $y, $cells');
+          throw RangeError(
+              'Grid item (columnStart: ${item.columnStart}, columnSpan: ${item.columnSpan}, rowStart: ${item.rowStart}, rowSpan: ${item.rowSpan}) did not fit on row $y');
         }
       }
     } else if (!item._isFullyPositioned) {
@@ -887,7 +872,12 @@ class _Grid {
       }
     }
 
-    _markTaken(child);
+    try {
+      _markTaken(child);
+    } on RangeError catch (_) {
+      throw RangeError(
+          'A grid item (columnStart: ${item.columnStart}, columnSpan: ${item.columnSpan}) exceeded the specified columns');
+    }
   }
 
   @override
