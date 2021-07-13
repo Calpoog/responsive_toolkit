@@ -182,7 +182,7 @@ class GridTrack {
   /// would be used as factor 1. Their final row heights would be 100, 100 and
   /// 200.
   const GridTrack.flex([int factor = 1])
-      : _value = factor as double,
+      : _value = factor + 0.0,
         _type = _GridTrackType.flex;
 
   @override
@@ -237,7 +237,7 @@ class ResponsiveGrid extends MultiChildRenderObjectWidget {
 
   ResponsiveGrid({
     Key? key,
-    required this.rows,
+    List<GridTrack>? rows,
     required this.columns,
     this.alignment = ResponsiveAlignment.start,
     this.crossAxisAlignment = ResponsiveCrossAlignment.start,
@@ -247,6 +247,7 @@ class ResponsiveGrid extends MultiChildRenderObjectWidget {
     this.clipBehavior = Clip.none,
     required List<ResponsiveGridItem> children,
   })  : assert(columns.length > 0),
+        rows = rows ?? [],
         rowSpacing = rowSpacing ?? spacing,
         columnSpacing = columnSpacing ?? spacing,
         super(
@@ -463,6 +464,7 @@ class RenderResponsiveGrid extends RenderBox
     }
 
     // Allocate partially positioned children next
+    child = firstChild;
     while (child != null) {
       final ResponsiveGridParentData item = _getParentData(child);
       if (item._isPartiallyPositioned) {
@@ -476,7 +478,7 @@ class RenderResponsiveGrid extends RenderBox
     child = firstChild;
     while (child != null) {
       final ResponsiveGridParentData item = _getParentData(child);
-      if (!item._isAutoPositioned) {
+      if (item._isAutoPositioned) {
         cells.allocate(child);
         rowCount = math.max(rowCount, item.rowEnd + 1);
       }
@@ -854,8 +856,8 @@ class _Grid {
               'Grid item (columnStart: ${item.columnStart}, columnSpan: ${item.columnSpan}, rowStart: ${item.rowStart}, rowSpan: ${item.rowSpan}) did not fit on row $y');
         }
       }
-    } else if (!item._isFullyPositioned) {
-      // only other option is auto positioned, fully positioned do not call findSpace
+    } else if (item._isAutoPositioned) {
+      // only other option is auto positioned, fully positioned do not call allocate
       int y = 0;
       // this will always complete by eventually creating new rows
       while (item.columnStart == null) {
