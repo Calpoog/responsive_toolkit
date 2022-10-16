@@ -1,3 +1,7 @@
+## 0.0.4
+
+- Minimal changes to fix problems and pub points
+
 ## 0.0.3
 
 - Added responsive grid system
