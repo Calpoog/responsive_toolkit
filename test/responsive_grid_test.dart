@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 
@@ -25,11 +24,19 @@ final colors = [
 ResponsiveColumn span(int span, {int offset = 0}) =>
     ResponsiveColumn.span(span: span, offset: offset, child: container());
 ResponsiveColumn auto({String text = text, int offset = 0, double? height}) =>
-    ResponsiveColumn.auto(offset: offset, child: container(text: text, height: height));
+    ResponsiveColumn.auto(
+        offset: offset, child: container(text: text, height: height));
 ResponsiveColumn fill({String? text, int offset = 0, Widget? child}) =>
-    ResponsiveColumn.fill(offset: offset, child: child ?? (text == null ? SizedBox.shrink() : Text(text)));
+    ResponsiveColumn.fill(
+        offset: offset,
+        child: child ?? (text == null ? SizedBox.shrink() : Text(text)));
 
-Widget container({Color color = Colors.grey, Widget? child, String? text, double? width, double? height = 50.0}) =>
+Widget container(
+        {Color color = Colors.grey,
+        Widget? child,
+        String? text,
+        double? width,
+        double? height = 50.0}) =>
     Container(
       height: height,
       width: width,
@@ -121,7 +128,10 @@ void main() {
                   xxl: ResponsiveColumnConfig(span: 1, order: 10),
                 ),
                 child: container(color: colors.last)),
-            ...List.generate(11, (i) => ResponsiveColumn.span(span: 1, order: i, child: container(color: colors[i]))),
+            ...List.generate(
+                11,
+                (i) => ResponsiveColumn.span(
+                    span: 1, order: i, child: container(color: colors[i]))),
           ],
         ),
       );
@@ -133,12 +143,14 @@ void main() {
   });
 
   group('ResponsiveColumn', () {
-    testWidgets('config sets type to span if not provided', (WidgetTester tester) async {
+    testWidgets('config sets type to span if not provided',
+        (WidgetTester tester) async {
       final col = ResponsiveColumnConfig(span: 2);
       expect(col.type, equals(ResponsiveColumnType.span));
     });
 
-    testWidgets('config sets type to span if not provided when composed', (WidgetTester tester) async {
+    testWidgets('config sets type to span if not provided when composed',
+        (WidgetTester tester) async {
       final col = ResponsiveColumn(
         Breakpoints(
           xs: ResponsiveColumnConfig(),
@@ -165,7 +177,8 @@ void main() {
       expect(config.order, equals(0));
     });
 
-    testWidgets('can compose multiple breakpoints', (WidgetTester tester) async {
+    testWidgets('can compose multiple breakpoints',
+        (WidgetTester tester) async {
       final col = ResponsiveColumn(
         Breakpoints(
           xs: ResponsiveColumnConfig(span: 2),
@@ -257,27 +270,34 @@ void main() {
         'Supports other column counts',
         ResponsiveRow(
           maxColumns: 10,
-          columns:
-              List.generate(10, (i) => ResponsiveColumn.span(span: 1, order: 1, child: container(color: colors[i]))),
+          columns: List.generate(
+              10,
+              (i) => ResponsiveColumn.span(
+                  span: 1, order: 1, child: container(color: colors[i]))),
         ),
       );
 
       golden.addScenario(
         '12 ordinal 1 columns',
         ResponsiveRow(
-          columns:
-              List.generate(12, (i) => ResponsiveColumn.span(span: 1, order: 1, child: container(color: colors[i]))),
+          columns: List.generate(
+              12,
+              (i) => ResponsiveColumn.span(
+                  span: 1, order: 1, child: container(color: colors[i]))),
         ),
       );
 
-      List<ResponsiveColumn> ordered =
-          List.generate(11, (i) => ResponsiveColumn.span(span: 1, order: i + 1, child: container(color: colors[i])));
+      List<ResponsiveColumn> ordered = List.generate(
+          11,
+          (i) => ResponsiveColumn.span(
+              span: 1, order: i + 1, child: container(color: colors[i])));
 
       golden.addScenario(
         'One column reordered to front',
         ResponsiveRow(
           columns: List.from(ordered)
-            ..add(ResponsiveColumn.span(span: 1, order: 0, child: container(color: colors[11]))),
+            ..add(ResponsiveColumn.span(
+                span: 1, order: 0, child: container(color: colors[11]))),
         ),
       );
 
@@ -285,11 +305,15 @@ void main() {
         'One column reordered to middle',
         ResponsiveRow(
           columns: List.from(ordered)
-            ..add(ResponsiveColumn.span(span: 1, order: 5, child: container(color: colors[11]))),
+            ..add(ResponsiveColumn.span(
+                span: 1, order: 5, child: container(color: colors[11]))),
         ),
       );
 
-      final spans = List.generate(12, (i) => ResponsiveColumn.span(span: 2, child: container(height: 10 * (i + 1))));
+      final spans = List.generate(
+          12,
+          (i) => ResponsiveColumn.span(
+              span: 2, child: container(height: 10 * (i + 1))));
       golden.addScenario(
         'Cross axis alignment start',
         ResponsiveRow(
@@ -371,7 +395,8 @@ void main() {
         ]),
       );
 
-      final autos = List.generate(12, (i) => auto(height: 10 * (i + 1), text: 'XX'.padLeft(i * 2, 'X')));
+      final autos = List.generate(12,
+          (i) => auto(height: 10 * (i + 1), text: 'XX'.padLeft(i * 2, 'X')));
       golden.addScenario(
         'Cross axis alignment start',
         ResponsiveRow(
@@ -445,7 +470,9 @@ void main() {
         (i) => ResponsiveColumn.fill(
           crossAxisAlignment: i == 1 ? ResponsiveCrossAlignment.end : null,
           child: Container(
-              decoration: BoxDecoration(color: Colors.grey, border: Border.all()), child: content(50, 10 * (i + 1))),
+              decoration:
+                  BoxDecoration(color: Colors.grey, border: Border.all()),
+              child: content(50, 10 * (i + 1))),
         ),
       );
       golden.addScenario(

@@ -71,7 +71,11 @@ class BaseBreakpoints<T> {
       for (int i = breakpoints.length - 1; i >= 0; i--) {
         if (values[i] != null) {
           values[i] = (values[i] as Composable<T>).compose(
-            values.sublist(0, i).where((value) => value != null).map((e) => e!).toList(),
+            values
+                .sublist(0, i)
+                .where((value) => value != null)
+                .map((e) => e!)
+                .toList(),
           );
         }
       }
