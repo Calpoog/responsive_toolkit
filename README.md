@@ -30,14 +30,21 @@ for any number of screen sizes and with whatever size names you prefer.
     - [Controlling the breakpoint axis](#controlling-the-breakpoint-axis)
     - [Using contraints instead of screen size](#using-contraints-instead-of-screen-size)
   - [Creating your own breakpoints](#creating-your-own-breakpoints)
-  - [Responsive grid](#responsive-grid)
+  - [Responsive row/column](#responsive-rowcolumn)
     - [`ResponsiveRow` Widget](#responsiverow-widget)
-    - [Why use responsive grid](#why-use-responsive-grid)
+    - [Why use responsive rows](#why-use-responsive-rows)
     - [`ResponsiveColumn`](#responsivecolumn)
       - [Column types](#column-types)
     - [Visual column layout reference](#visual-column-layout-reference)
     - [Using `Breakpoints` with responsive grid](#using-breakpoints-with-responsive-grid)
     - [Changing the number of columns in the grid system](#changing-the-number-of-columns-in-the-grid-system)
+  - [`ResponsiveGrid`](#responsivegrid)
+    - [Responsive grid vs Responsive row/column](#responsive-grid-vs-responsive-rowcolumn)
+    - [How Responsive grid is different](#how-responsive-grid-is-different)
+    - [Layout algorithm](#layout-algorithm)
+    - [Layout notes](#layout-notes)
+    - [Best practice](#best-practice)
+    - [`ResponsiveGridItem`](#responsivegriditem)
 
 <br />
 
@@ -288,7 +295,7 @@ When extending `BaseBreakpoints`, the first breakpoint size **must** be 0. This 
 
 <br /><br />
 
-## Responsive grid
+## Responsive row/column
 
 Web developers will be familiar with the concept of a 12 column grid system (Or Android devs may be more familiar with [GridLayout](https://developer.android.com/reference/android/widget/GridLayout)). This is a popular format for providing consistency in design that translates well to code. The columns can span any number of the 12 slots of the grid, offset to create space, and reorder independently of widget code order – all controllable with breakpoints to provide the best layout for the current screen. The toolkit provides a full-fledged responsive grid system including everything previously stated **as well as** auto-width and fill-width (filling remaining row space) columns with wrapping capabilities.
 
@@ -334,9 +341,9 @@ A row lays out its columns in a left to right, top to bottom fashion. If the wid
 
 <br />
 
-### Why use responsive grid
+### Why use responsive rows
 
-You may be thinking "why can't I use a `Row` or `Wrap` for this?" The answer is `ResponsiveRow` and `ResponsiveColumn` together support all of those features plus more. There's a reason many web developers and designers continue to use responsive grids!
+You may be thinking "why can't I use a `Row` or `Wrap` for this?" The answer is `ResponsiveRow` and `ResponsiveColumn` together support all of those features plus more. There's a reason many web developers and designers continue to use responsive grid systems!
 
 | Supports                                              |       `Row`        |       `Wrap`       |  `ResponsiveRow`   |
 | ----------------------------------------------------- | :----------------: | :----------------: | :----------------: |
@@ -475,3 +482,85 @@ ResponsiveRow(
       ),
 ),
 ```
+<br />
+
+## `ResponsiveGrid`
+### Responsive grid vs Responsive row/column
+This is where the naming scheme gets tricky. The responsive row and column shown above is often described as being part of a "responsive grid" system. In web development the 12-column grid system is what is most commonly called a grid. However, a newer technology called CSS grid (similar to Android's GridLayout) creates a different model for how to layout grid content. In this toolkit we'll call this model Responsive grid and continue to refer to the 12-column grid system as Responsive rows and columns.
+
+### How Responsive grid is different
+Instead of a fixed number of columns that each item can span any number of, the Responsive grid allows a grid to be predefined by specifying grid tracks. A track is a series of cells either in the vertical or horizontal direction (columns and rows). Each track can have a fixed, auto, or flex size. Grid items then specify both how many columns they span (much like Responsive row/column) but also how many rows they span. In addition, items can specify the row/column at which they start or be placed in a starting position automatically. The following example shows a layout that is not possible using Responsive row/column but is with Responsive grid.
+
+<img alt="" src="" />
+
+The code to create this layout looks like this:
+```dart
+ResponsiveGrid(
+  columns: [
+    GridTrack.fixed(100),
+    GridTrack.auto(),
+    GridTrack.flex(),
+  ],
+  rows: [
+    GridTrack.fixed(80),
+  ],
+  children: [
+    ResponsiveGridItem(
+      child: container(text: 'Variable width, spans 2 columns'),
+      columnSpan: 2,
+    ),
+    ResponsiveGridItem(
+      child: container(text: 'Flex width, spans 3 rows'),
+      rowSpan: 3,
+      crossAxisAlignment: ResponsiveCrossAlignment.stretch,
+    ),
+    ResponsiveGridItem(child: container(text: 'Fixed width')),
+    ResponsiveGridItem(child: container(text: 'Auto width')),
+    ResponsiveGridItem(child: container(text: 'Fixed width')),
+    ResponsiveGridItem(child: container(text: 'Auto width')),
+    ResponsiveGridItem(
+      child: container(text: 'Spans 3 columns'),
+      columnSpan: 3,
+    ),
+  ],
+)
+```
+
+This grid specifies three columns using `GridTrack` definitions. The first column is fixed at 100px  wide, the second lets its width be determined by the width of its children, and the 3rd is a flex column that fills the remaining horizontal space (a grid takes the full width it is allowed). Rows in a grid are implicit by default, and as `ResponsiveGridItem` are placed in the layout, new rows are created as necessary and are set to auto. However, the `rows` property can be set to explicitly define row tracks. In the above example, only one row is explicitly defined as having an 80px fixed height (but the rows can be auto or fixed like a column).
+
+### Layout algorithm
+First, each `ResponsiveGridItem` is given a position and allotted a certain number of grid cells. This process is independent of the size of the tracks that make up the rows and columns. In the above example, there are 3 columns (must be defined explicitly) and infinite rows (rows are implicit). The algorithm uses the `rowStart`, `columnStart`, `rowSpan`, and `columnSpan` of each of its children to determine their location and number of cells taken in the grid.
+
+The row and column start position of an item is automatic by default, but each can be specified. When both are left unassigned, the item is considered automatically positioned. If one of the row or column start properties is set, it is considered partially positioned. If both the row and column start are specified, the item is fully positioned. The algorithm first places the items that are fully positioned, then the partially positioned items, followed last by the automatically positioned items.
+
+When finding an available space in the grid, the cell must fit given its starting row/column as well as the number of rows and columns that it spans. However, if an item is fully positioned, it acts as an "absolute" item and is placed exactly where it was assigned, regardless of if there is another item that it fully or partially overlaps. This can be useful if items are required to overlap to achieve your desired design.
+
+In the above example the items are laid out as follows:
+1. The first item placed is the "Variable width, spans 2 columns" item. There are no spaces taken yet, so a row and column start of 0 with a column span of 2 fits. It now starts at row/column 0,0 and takes up two horizontal cells.
+2. The "Flex width, spans 3 rows" item has no column span specified (defaults to 1) and spans 3 rows, so it takes up a total of 3 cells. This fits in the 3rd column of the first row and spans the two rows below it. Two auto rows are implicitly created to accomodate.
+3. The last child, "Spans 3 columns" is placed next because the previous children are auto positioned and it is partially positioned. It defaults to a row span of 1 and has a column span of 3 so it takes up 3 full cells. It cannot fit in row 0 because it is full from the previous two items. It also cannot fit in row 1 or 2 because the last child that was placed takes up the 3rd column of both of those rows and this item needs to span 3 columns. A fourth row of type auto is implicitly created and this item fills all 3 columns of he new row.
+4. Finally, the four items with no start or spans are placed. Each takes up 1 total cell. Positions [1,0], [1,1], [2,0], and [2,1] are filled by these items.
+
+Finally the tracks can be given sizes once the items have been placed. The first column will always be 100px because it was declared as fixed. The second column gets its size from the children that span it. In this case, the first item spans the fixed and auto column, and distributes extra space to the second column greater than that of the two "auto width" children. The 3rd column flexes to fill the remaining space. Finally, the first row gets a fixed height of 80px from the explicit definition, and the remaining rows have an auto height matching their children's heights.
+
+### Layout notes
+* Items are allotted space first if they are fully positioned, next partially positioned, and automatically positioned last.
+* Fully positioned items mark cells as taken for the layout algorithm so they affect the positioning of later partially or automatically positioned items, but do not affect layout of other fully positioned items. Therefore they can overlap all or part of other fully positioned items.
+* Columns must be explicitly specified. If an item starts or spans a non existent column there will be a layout error.
+* Rows are technically infinite and auto sized by default but can be explicitly specified. If an item starts or spans a non-explicit row, new implicit rows will be created to accommodate.
+* Flex columns take up the remaining width in the grid based on their flex factor with respect to other flex columns.
+* Because a grid can expand in height indefinitely, flex rows don't work like flex columns. Flex rows will not fill the remaining space but instead will get their height from the greatest auto height to flex factor ratio of other flexible rows. For instance, if there are 3 flex rows whose auto heights are 40, 60, 80 and flex factors of 1, 1, and 2, the greatest height to flex ratio is 60/1. Now each flex factor is 60px, so the heights of the 3 rows would be 60, 60, and 120.
+
+### Best practice
+Because of the complexity of the layout algorithm, it is best to be as explicit as possible with row/column start and spans. This makes the layout clearer to read and understand and will lead to less unforeseen issues.
+
+
+### `ResponsiveGridItem`
+Each child of a `ResponsiveGrid` must be a `ResponsiveGridItem`. The properties are relatively simple:
+
+* `columnStart`: zero-indexed column this item begins in.
+* `rowStart`: zero-indexed row this item begins in.
+* `columnSpan`: the number of columns the item will span
+* `rowSpan`: the number of rows the item will span
+* `zIndex`: the z position of this item used to determine which item appears above another when two fully-positioned items overlap
+* `crossAxisAlignment`: the individual cross axis alignment of this item (can be `start`, `center`, `end`, or `stretch`)

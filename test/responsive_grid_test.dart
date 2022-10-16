@@ -155,14 +155,12 @@ void main() {
             ResponsiveGridItem(
               child: container(text: 'grid item 3'),
               rowStart: 2,
-              // crossAxisAlignment: ResponsiveCrossAlignment.end,
             ),
             ResponsiveGridItem(
               child: container(text: 'grid item 3.5'),
               columnStart: 0,
               columnSpan: 2,
               rowStart: 4,
-              // crossAxisAlignment: ResponsiveCrossAlignment.end,
             ),
             ResponsiveGridItem(
               child: container(text: 'grid item 4', height: 250),
