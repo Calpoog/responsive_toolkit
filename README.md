@@ -38,6 +38,8 @@ for any number of screen sizes and with whatever size names you prefer.
     - [Visual column layout reference](#visual-column-layout-reference)
     - [Using `Breakpoints` with responsive grid](#using-breakpoints-with-responsive-grid)
     - [Changing the number of columns in the grid system](#changing-the-number-of-columns-in-the-grid-system)
+  - [Fluid typography](#fluid-typography)
+    - [`FluidText` Widget](#fluidtext-widget)
 
 <br />
 
@@ -47,7 +49,7 @@ Add `responsive_toolkit` to your list of dependencies in `pubspec.yaml`
 
 ```yaml
 dependencies:
-  responsive_toolkit: ^0.0.3
+  responsive_toolkit: ^0.0.5
 ```
 
 ## Responsive layouts
@@ -473,5 +475,55 @@ ResponsiveRow(
           child: Container(child: Text('Column $i')),
         ),
       ),
+),
+```
+
+<br />
+
+## Fluid typography
+
+Text sizing is a common variable which is adjusted across screen sizes. Text sizes are often adjusted on a per-breakpoint basis and stay consistent throughout each breakpoint. However, a more modern approach often uses the concept of fluid text size. This can make designing for screens more consistent in how text behaves and wraps. Fluid typography uses a minimum and maximum font size which is linearly scaled between a min and max screen width.
+
+<br />
+
+### `FluidText` Widget
+
+The `FluidText` widget takes 4 required paramaters to define its behavior. It also accepts all parameters from the existing `Text` widget.
+
+```dart
+FluidText(
+  'This text scales from 16 to 36 font size between 375-1024 pixel screen width.',
+  minFontSize: 16,
+  maxFontSize: 36,
+  minWidth: 375,
+  maxWidth: 1024,
+),
+```
+
+`FluidText` also supports `RichText` behavior using the `rich()` named constructor.
+
+```dart
+FluidText.rich(
+  TextSpan(
+    text: 'This rich text',
+    style: const TextStyle(
+      color: Colors.red,
+      fontWeight: FontWeight.bold,
+    ),
+    children: [
+      const TextSpan(
+        text: ' scales in the',
+        style: const TextStyle(color: Colors.blue),
+      ),
+      const TextSpan(
+        text: ' same way',
+        style: const TextStyle(fontWeight: FontWeight.w100),
+      ),
+    ],
+  ),
+  minFontSize: 16,
+  maxFontSize: 36,
+  minWidth: 375,
+  maxWidth: 1024,
 ),
 ```

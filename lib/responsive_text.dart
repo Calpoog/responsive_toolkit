@@ -28,6 +28,28 @@ class FluidText extends Text {
     super.textHeightBehavior,
   }) : _style = style ?? TextStyle();
 
+  FluidText.rich(
+    InlineSpan textSpan, {
+    required this.minWidth,
+    required this.maxWidth,
+    required this.minFontSize,
+    required this.maxFontSize,
+    super.key,
+    super.style,
+    super.strutStyle,
+    super.textAlign,
+    super.textDirection,
+    super.locale,
+    super.softWrap,
+    super.overflow,
+    super.textScaleFactor,
+    super.maxLines,
+    super.semanticsLabel,
+    super.textWidthBasis,
+    super.textHeightBehavior,
+  })  : _style = style ?? TextStyle(),
+        super.rich(textSpan);
+
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
