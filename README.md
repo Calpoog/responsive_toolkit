@@ -484,6 +484,8 @@ ResponsiveRow(
 
 Text sizing is a common variable which is adjusted across screen sizes. Text sizes are often adjusted on a per-breakpoint basis and stay consistent throughout each breakpoint. However, a more modern approach often uses the concept of fluid text size. This can make designing for screens more consistent in how text behaves and wraps. Fluid typography uses a minimum and maximum font size which is linearly scaled between a min and max screen width.
 
+![FluidText](https://user-images.githubusercontent.com/3476942/196285310-5122a2f2-f0ce-49f4-b100-e8f8e6390fcc.gif)
+
 <br />
 
 ### `FluidText` Widget
