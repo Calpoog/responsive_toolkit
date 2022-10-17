@@ -1,3 +1,7 @@
+## 0.0.5
+
+- Added FluidText for responsive typography
+
 ## 0.0.4
 
 - Minimal changes to fix problems and pub points
