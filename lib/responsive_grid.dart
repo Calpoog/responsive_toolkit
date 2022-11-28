@@ -83,6 +83,9 @@ class ResponsiveColumnConfig implements Composable<ResponsiveColumnConfig> {
   /// The position of this column within [ResponsiveRow] relative to the [order]
   /// property of the other columns.
   final int? order;
+
+  /// The alignment of this column within [ResponsiveRow] in the cross axis
+  /// (vertical direction).
   final ResponsiveCrossAlignment? crossAxisAlignment;
 
   /// Creates a definition for the display of a [ResponsiveColumn]
@@ -348,20 +351,16 @@ class ResponsiveRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) => _ResponsiveRow(
-        screenSize: breakOnConstraints
-            ? constraints.biggest
-            : MediaQuery.of(context).size,
-        columns: columns,
-        alignment: alignment,
-        spacing: spacing,
-        runAlignment: runAlignment,
-        runSpacing: runSpacing,
-        crossAxisAlignment: crossAxisAlignment,
-        clipBehavior: clipBehavior,
-        maxColumns: maxColumns,
-      ),
+    return _ResponsiveRow(
+      screenSize: breakOnConstraints ? null : MediaQuery.of(context).size,
+      columns: columns,
+      alignment: alignment,
+      spacing: spacing,
+      runAlignment: runAlignment,
+      runSpacing: runSpacing,
+      crossAxisAlignment: crossAxisAlignment,
+      clipBehavior: clipBehavior,
+      maxColumns: maxColumns,
     );
   }
 }
@@ -375,13 +374,13 @@ class _ResponsiveRow extends MultiChildRenderObjectWidget {
   final double runSpacing;
   final ResponsiveCrossAlignment crossAxisAlignment;
   final Clip clipBehavior;
-  final Size screenSize;
+  final Size? screenSize;
   final int maxColumns;
 
   _ResponsiveRow({
     Key? key,
     required this.columns,
-    required this.screenSize,
+    this.screenSize,
     this.maxColumns = 12,
     this.alignment = ResponsiveAlignment.start,
     this.spacing = 0.0,
@@ -434,7 +433,7 @@ class _ResponsiveRenderWrap extends RenderBox
   /// runs are aligned to the start.
   _ResponsiveRenderWrap({
     required List<ResponsiveColumn> columns,
-    required Size screenSize,
+    Size? screenSize,
     required int maxColumns,
     List<RenderBox>? children,
     ResponsiveAlignment alignment = ResponsiveAlignment.start,
@@ -444,8 +443,7 @@ class _ResponsiveRenderWrap extends RenderBox
     ResponsiveCrossAlignment crossAxisAlignment =
         ResponsiveCrossAlignment.start,
     Clip clipBehavior = Clip.none,
-  })  : _screenSize = screenSize,
-        _maxColumns = maxColumns,
+  })  : _maxColumns = maxColumns,
         _columns = columns,
         _alignment = alignment,
         _spacing = spacing,
@@ -453,6 +451,7 @@ class _ResponsiveRenderWrap extends RenderBox
         _runSpacing = runSpacing,
         _crossAxisAlignment = crossAxisAlignment,
         _clipBehavior = clipBehavior {
+    _screenSize = screenSize ?? constraints.biggest;
     addAll(children);
   }
 
@@ -465,10 +464,10 @@ class _ResponsiveRenderWrap extends RenderBox
   }
 
   Size get screenSize => _screenSize;
-  Size _screenSize;
-  set screenSize(Size value) {
+  late Size _screenSize;
+  set screenSize(Size? value) {
     if (_screenSize == value) return;
-    _screenSize = value;
+    _screenSize = value ?? constraints.biggest;
     markNeedsLayout();
   }
 
