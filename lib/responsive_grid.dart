@@ -451,7 +451,7 @@ class _ResponsiveRenderWrap extends RenderBox
         _runSpacing = runSpacing,
         _crossAxisAlignment = crossAxisAlignment,
         _clipBehavior = clipBehavior {
-    _screenSize = screenSize ?? constraints.biggest;
+    _screenSize = screenSize;
     addAll(children);
   }
 
@@ -463,8 +463,8 @@ class _ResponsiveRenderWrap extends RenderBox
     markNeedsLayout();
   }
 
-  Size get screenSize => _screenSize;
-  late Size _screenSize;
+  Size? get screenSize => _screenSize;
+  Size? _screenSize;
   set screenSize(Size? value) {
     if (_screenSize == value) return;
     _screenSize = value ?? constraints.biggest;
@@ -660,8 +660,10 @@ class _ResponsiveRenderWrap extends RenderBox
     // Choose breakpoints up front because order changes layout
     while (child != null) {
       final childParentData = _getParentData(child);
-      childParentData._column =
-          columns.elementAt(childIndex).breakpoints.choose(_screenSize.width);
+      childParentData._column = columns
+          .elementAt(childIndex)
+          .breakpoints
+          .choose(_screenSize?.width ?? constraints.biggest.width);
       assert(
           childParentData._column!.span! >= 0 &&
               childParentData._column!.span! <= maxColumns,

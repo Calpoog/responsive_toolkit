@@ -16,8 +16,8 @@ void main() {
 
     sizes.forEach((name, width) {
       testWidgets('shows $name widget', (WidgetTester tester) async {
-        tester.binding.window.physicalSizeTestValue = Size(width, 500);
-        tester.binding.window.devicePixelRatioTestValue = 1;
+        tester.view.physicalSize = Size(width, 500);
+        tester.view.devicePixelRatio = 1;
         await tester.pumpWidget(wrap(ResponsiveLayout(
           Breakpoints(
             xs: Text('xs'),
@@ -36,7 +36,7 @@ void main() {
 
     testWidgets('shows xs widget when only xs and lg are specified',
         (WidgetTester tester) async {
-      tester.binding.window.physicalSizeTestValue = Size(800, 500);
+      tester.view.physicalSize = Size(800, 500);
       await tester.pumpWidget(wrap(ResponsiveLayout(
         Breakpoints(
           xs: Text('xs'),
@@ -59,7 +59,7 @@ void main() {
 
       expect(find.text('xs'), findsOneWidget);
 
-      tester.binding.window.physicalSizeTestValue = Size(1000, 500);
+      tester.view.physicalSize = Size(1000, 500);
 
       await tester.pump();
 
@@ -67,7 +67,7 @@ void main() {
     });
 
     testWidgets('can use custom sizes', (WidgetTester tester) async {
-      tester.binding.window.physicalSizeTestValue = Size(500, 500);
+      tester.view.physicalSize = Size(500, 500);
       await tester.pumpWidget(wrap(ResponsiveLayout(
         Breakpoints(
           xs: Text('xs'),
@@ -82,26 +82,26 @@ void main() {
 
       expect(find.text('xs'), findsOneWidget);
 
-      tester.binding.window.physicalSizeTestValue = Size(750, 500);
+      tester.view.physicalSize = Size(750, 500);
       await tester.pump();
       expect(find.text('700'), findsOneWidget);
 
-      tester.binding.window.physicalSizeTestValue = Size(850, 500);
+      tester.view.physicalSize = Size(850, 500);
       await tester.pump();
       expect(find.text('800'), findsOneWidget);
 
-      tester.binding.window.physicalSizeTestValue = Size(1000, 500);
+      tester.view.physicalSize = Size(1000, 500);
       await tester.pump();
       expect(find.text('lg'), findsOneWidget);
 
-      tester.binding.window.physicalSizeTestValue = Size(1100, 500);
+      tester.view.physicalSize = Size(1100, 500);
       await tester.pump();
       expect(find.text('1050'), findsOneWidget);
     });
 
     testWidgets('.builder works using WidgetBuilders',
         (WidgetTester tester) async {
-      tester.binding.window.physicalSizeTestValue = Size(300, 500);
+      tester.view.physicalSize = Size(300, 500);
       await tester.pumpWidget(wrap(ResponsiveLayout.builder(
         Breakpoints(
           xs: (_) => Text('xs'),
@@ -111,7 +111,7 @@ void main() {
 
       expect(find.text('xs'), findsOneWidget);
 
-      tester.binding.window.physicalSizeTestValue = Size(1000, 500);
+      tester.view.physicalSize = Size(1000, 500);
 
       await tester.pump();
 
@@ -119,7 +119,7 @@ void main() {
     });
 
     testWidgets('.builder can use custom sizes', (WidgetTester tester) async {
-      tester.binding.window.physicalSizeTestValue = Size(500, 500);
+      tester.view.physicalSize = Size(500, 500);
       await tester.pumpWidget(wrap(ResponsiveLayout.builder(
         Breakpoints(
           xs: (_) => Text('xs'),
@@ -134,27 +134,27 @@ void main() {
 
       expect(find.text('xs'), findsOneWidget);
 
-      tester.binding.window.physicalSizeTestValue = Size(750, 500);
+      tester.view.physicalSize = Size(750, 500);
       await tester.pump();
       expect(find.text('700'), findsOneWidget);
 
-      tester.binding.window.physicalSizeTestValue = Size(850, 500);
+      tester.view.physicalSize = Size(850, 500);
       await tester.pump();
       expect(find.text('800'), findsOneWidget);
 
-      tester.binding.window.physicalSizeTestValue = Size(1000, 500);
+      tester.view.physicalSize = Size(1000, 500);
       await tester.pump();
       expect(find.text('lg'), findsOneWidget);
 
-      tester.binding.window.physicalSizeTestValue = Size(1100, 500);
+      tester.view.physicalSize = Size(1100, 500);
       await tester.pump();
       expect(find.text('1050'), findsOneWidget);
     });
 
     sizes.forEach((name, width) {
       testWidgets('.value changes Text to $name', (WidgetTester tester) async {
-        tester.binding.window.physicalSizeTestValue = Size(width, 500);
-        tester.binding.window.devicePixelRatioTestValue = 1;
+        tester.view.physicalSize = Size(width, 500);
+        tester.view.devicePixelRatio = 1;
         await tester.pumpWidget(
           wrap(
             Builder(
@@ -181,7 +181,7 @@ void main() {
     });
 
     testWidgets('.value can use custom sizes', (WidgetTester tester) async {
-      tester.binding.window.physicalSizeTestValue = Size(500, 500);
+      tester.view.physicalSize = Size(500, 500);
       await tester.pumpWidget(
         wrap(
           Builder(
@@ -205,26 +205,26 @@ void main() {
 
       expect(find.text('xs'), findsOneWidget);
 
-      tester.binding.window.physicalSizeTestValue = Size(750, 500);
+      tester.view.physicalSize = Size(750, 500);
       await tester.pump();
       expect(find.text('700'), findsOneWidget);
 
-      tester.binding.window.physicalSizeTestValue = Size(850, 500);
+      tester.view.physicalSize = Size(850, 500);
       await tester.pump();
       expect(find.text('800'), findsOneWidget);
 
-      tester.binding.window.physicalSizeTestValue = Size(1000, 500);
+      tester.view.physicalSize = Size(1000, 500);
       await tester.pump();
       expect(find.text('lg'), findsOneWidget);
 
-      tester.binding.window.physicalSizeTestValue = Size(1100, 500);
+      tester.view.physicalSize = Size(1100, 500);
       await tester.pump();
       expect(find.text('1050'), findsOneWidget);
     });
 
     testWidgets('changes rendered widget on vertical axes',
         (WidgetTester tester) async {
-      tester.binding.window.physicalSizeTestValue = Size(500, 500);
+      tester.view.physicalSize = Size(500, 500);
       await tester.pumpWidget(wrap(ResponsiveLayout(
         Breakpoints(
           xs: Text('xs vertical'),
@@ -235,7 +235,7 @@ void main() {
 
       expect(find.text('xs vertical'), findsOneWidget);
 
-      tester.binding.window.physicalSizeTestValue = Size(500, 1000);
+      tester.view.physicalSize = Size(500, 1000);
 
       await tester.pump();
 
@@ -246,7 +246,7 @@ void main() {
   group('ResponsiveConstraintLayout', () {
     testWidgets('changes rendered widget on horizontal axis',
         (WidgetTester tester) async {
-      tester.binding.window.physicalSizeTestValue = Size(500, 500);
+      tester.view.physicalSize = Size(500, 500);
 
       final widget = wrap(
         Row(
@@ -271,22 +271,22 @@ void main() {
 
       expect(find.text('xs'), findsOneWidget);
 
-      tester.binding.window.physicalSizeTestValue = Size(700, 500);
+      tester.view.physicalSize = Size(700, 500);
       await tester.pump();
       expect(find.text('300'), findsOneWidget);
 
-      tester.binding.window.physicalSizeTestValue = Size(1200, 500);
+      tester.view.physicalSize = Size(1200, 500);
       await tester.pump();
       expect(find.text('sm'), findsOneWidget);
 
-      tester.binding.window.physicalSizeTestValue = Size(2000, 500);
+      tester.view.physicalSize = Size(2000, 500);
       await tester.pump();
       expect(find.text('lg'), findsOneWidget);
     });
 
     testWidgets('changes rendered widget on vertical axis',
         (WidgetTester tester) async {
-      tester.binding.window.physicalSizeTestValue = Size(500, 500);
+      tester.view.physicalSize = Size(500, 500);
 
       final widget = wrap(
         Column(
@@ -312,15 +312,15 @@ void main() {
 
       expect(find.text('xs'), findsOneWidget);
 
-      tester.binding.window.physicalSizeTestValue = Size(500, 700);
+      tester.view.physicalSize = Size(500, 700);
       await tester.pump();
       expect(find.text('300'), findsOneWidget);
 
-      tester.binding.window.physicalSizeTestValue = Size(500, 1200);
+      tester.view.physicalSize = Size(500, 1200);
       await tester.pump();
       expect(find.text('sm'), findsOneWidget);
 
-      tester.binding.window.physicalSizeTestValue = Size(500, 2000);
+      tester.view.physicalSize = Size(500, 2000);
       await tester.pump();
       expect(find.text('lg'), findsOneWidget);
     });
@@ -337,8 +337,8 @@ void main() {
     sizes.forEach((name, width) {
       testWidgets('MyResponsiveLayout shows $name widget',
           (WidgetTester tester) async {
-        tester.binding.window.physicalSizeTestValue = Size(width, 500);
-        tester.binding.window.devicePixelRatioTestValue = 1;
+        tester.view.physicalSize = Size(width, 500);
+        tester.view.devicePixelRatio = 1;
         await tester.pumpWidget(wrap(ResponsiveLayout(
           MyBreakpoints(
             watch: Text('watch'),
