@@ -1,3 +1,8 @@
+## 0.0.6
+
+- Removed internal use of `LayoutBuilder`
+- Removed unused flutter asset in pubspec to eliminate build errors
+
 ## 0.0.5
 
 - Added FluidText for responsive typography
