@@ -28,7 +28,7 @@ for any number of screen sizes and with whatever size names you prefer.
     - [`ResponsiveLayout` Widget](#responsivelayout-widget)
     - [`ResponsiveLayout.value` Utility Method](#responsivelayoutvalue-utility-method)
     - [Controlling the breakpoint axis](#controlling-the-breakpoint-axis)
-    - [Using contraints instead of screen size](#using-contraints-instead-of-screen-size)
+    - [Using constraints instead of screen size](#using-constraints-instead-of-screen-size)
   - [Creating your own breakpoints](#creating-your-own-breakpoints)
   - [Responsive grid](#responsive-grid)
     - [`ResponsiveRow` Widget](#responsiverow-widget)
@@ -49,7 +49,7 @@ Add `responsive_toolkit` to your list of dependencies in `pubspec.yaml`
 
 ```yaml
 dependencies:
-  responsive_toolkit: ^0.0.5
+  responsive_toolkit: ^0.1.0
 ```
 
 ## Responsive layouts
@@ -220,7 +220,7 @@ ResponsiveLayout(
 ),
 ```
 
-### Using contraints instead of screen size
+### Using constraints instead of screen size
 
 It may make sense for some layouts to be dependent on their allotted max width or height. In this
 case you can use `ResponsiveConstraintLayout` that has an API much like `ResponsiveLayout`
@@ -373,7 +373,7 @@ A column that sizes itself to its child.
 
 ---
 **Fill**<br />
-A column that fills the remaining space in the run. If multiple fill columns are present the remaining space is divided equally among them (similar to them having a flex factor of 1). Fill columns cannot be made smaller than the `minIntrinsicWidth` of their child. For instance, if dividing the remaining space between 3 fill columns causes one to drop below its child's `minIntrinsicWidth`, it will remain at its minimum size and the other fill columns will continue to distribute their widths evenly. The result would be that one or more fill columns are different sizes than the others (this is expected flex behavior on web). Only once all fill columns in a run would be sized below their `minIntrisicWidth` will the last column in the row wrap to a new run.
+A column that fills the remaining space in the run. If multiple fill columns are present the remaining space is divided equally among them (similar to them having a flex factor of 1). Fill columns cannot be made smaller than the `minIntrinsicWidth` of their child. For instance, if dividing the remaining space between 3 fill columns causes one to drop below its child's `minIntrinsicWidth`, it will remain at its minimum size and the other fill columns will continue to distribute their widths evenly. The result would be that one or more fill columns are different sizes than the others (this is expected flex behavior on web). Only once all fill columns in a run would be sized below their `minIntrinsicWidth` will the last column in the row wrap to a new run.
 
 `ResponsiveColumn.fill(child: ...)`
 
@@ -490,7 +490,7 @@ Text sizing is a common variable which is adjusted across screen sizes. Text siz
 
 ### `FluidText` Widget
 
-The `FluidText` widget takes 4 required paramaters to define its behavior. It also accepts all parameters from the existing `Text` widget.
+The `FluidText` widget takes 4 required parameters to define its behavior. It also accepts all parameters from the existing `Text` widget.
 
 ```dart
 FluidText(

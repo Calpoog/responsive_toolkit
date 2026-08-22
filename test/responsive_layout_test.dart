@@ -4,6 +4,63 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:responsive_toolkit/responsive_toolkit.dart';
 
 void main() {
+  group('Breakpoints', () {
+    test('copies inputs and exposes immutable collections', () {
+      final widths = <int>[0, 100];
+      final values = <String?>['small', 'large'];
+      final breakpoints = BaseBreakpoints<String>(
+        breakpoints: widths,
+        values: values,
+      );
+
+      widths[1] = 200;
+      values[1] = 'changed';
+
+      expect(breakpoints.choose(150), 'large');
+      expect(() => breakpoints.breakpoints.add(300), throwsUnsupportedError);
+      expect(() => breakpoints.values[0] = 'changed', throwsUnsupportedError);
+    });
+
+    test('validates shape, ordering, and custom widths', () {
+      expect(
+        () => BaseBreakpoints<String>(breakpoints: const [], values: const []),
+        throwsArgumentError,
+      );
+      expect(
+        () => BaseBreakpoints<String>(
+          breakpoints: const [0, 100],
+          values: const ['small'],
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => BaseBreakpoints<String>(
+          breakpoints: const [0, 100, 100],
+          values: const ['small', 'medium', 'large'],
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => Breakpoints(xs: 'small', custom: {-1: 'invalid'}),
+        throwsArgumentError,
+      );
+    });
+
+    test('custom values replace standard breakpoints deterministically', () {
+      final breakpoints = Breakpoints(
+        xs: 'small',
+        sm: 'standard',
+        custom: {576: 'custom'},
+      );
+
+      expect(breakpoints.choose(576), 'custom');
+      expect(
+        breakpoints.breakpoints.where((width) => width == 576),
+        hasLength(1),
+      );
+    });
+  });
+
   group('ResponsiveLayout', () {
     final Map<String, double> sizes = {
       'xs': 300,
@@ -11,51 +68,60 @@ void main() {
       'md': 800,
       'lg': 1000,
       'xl': 1250,
-      'xxl': 1500
+      'xxl': 1500,
     };
 
     sizes.forEach((name, width) {
       testWidgets('shows $name widget', (WidgetTester tester) async {
         tester.view.physicalSize = Size(width, 500);
         tester.view.devicePixelRatio = 1;
-        await tester.pumpWidget(wrap(ResponsiveLayout(
-          Breakpoints(
-            xs: Text('xs'),
-            sm: Text('sm'),
-            md: Text('md'),
-            lg: Text('lg'),
-            xl: Text('xl'),
-            xxl: Text('xxl'),
+        await tester.pumpWidget(
+          wrap(
+            ResponsiveLayout(
+              Breakpoints(
+                xs: Text('xs'),
+                sm: Text('sm'),
+                md: Text('md'),
+                lg: Text('lg'),
+                xl: Text('xl'),
+                xxl: Text('xxl'),
+              ),
+            ),
           ),
-        )));
+        );
 
         expect(find.text(name), findsOneWidget);
         expect(find.byType(Text), findsOneWidget);
       });
     });
 
-    testWidgets('shows xs widget when only xs and lg are specified',
-        (WidgetTester tester) async {
+    testWidgets('forwards its key', (WidgetTester tester) async {
+      const key = ValueKey('responsive-layout');
+      await tester.pumpWidget(
+        wrap(ResponsiveLayout(Breakpoints(xs: const Text('xs')), key: key)),
+      );
+
+      expect(find.byKey(key), findsOneWidget);
+    });
+
+    testWidgets('shows xs widget when only xs and lg are specified', (
+      WidgetTester tester,
+    ) async {
       tester.view.physicalSize = Size(800, 500);
-      await tester.pumpWidget(wrap(ResponsiveLayout(
-        Breakpoints(
-          xs: Text('xs'),
-          lg: Text('lg'),
-        ),
-      )));
+      await tester.pumpWidget(
+        wrap(ResponsiveLayout(Breakpoints(xs: Text('xs'), lg: Text('lg')))),
+      );
 
       expect(find.text('xs'), findsOneWidget);
       expect(find.byType(Text), findsOneWidget);
     });
 
-    testWidgets('changes rendered widget when screen size changes',
-        (WidgetTester tester) async {
-      await tester.pumpWidget(wrap(ResponsiveLayout(
-        Breakpoints(
-          xs: Text('xs'),
-          lg: Text('lg'),
-        ),
-      )));
+    testWidgets('changes rendered widget when screen size changes', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        wrap(ResponsiveLayout(Breakpoints(xs: Text('xs'), lg: Text('lg')))),
+      );
 
       expect(find.text('xs'), findsOneWidget);
 
@@ -68,17 +134,17 @@ void main() {
 
     testWidgets('can use custom sizes', (WidgetTester tester) async {
       tester.view.physicalSize = Size(500, 500);
-      await tester.pumpWidget(wrap(ResponsiveLayout(
-        Breakpoints(
-          xs: Text('xs'),
-          lg: Text('lg'),
-          custom: {
-            700: Text('700'),
-            800: Text('800'),
-            1050: Text('1050'),
-          },
+      await tester.pumpWidget(
+        wrap(
+          ResponsiveLayout(
+            Breakpoints(
+              xs: Text('xs'),
+              lg: Text('lg'),
+              custom: {700: Text('700'), 800: Text('800'), 1050: Text('1050')},
+            ),
+          ),
         ),
-      )));
+      );
 
       expect(find.text('xs'), findsOneWidget);
 
@@ -99,15 +165,17 @@ void main() {
       expect(find.text('1050'), findsOneWidget);
     });
 
-    testWidgets('.builder works using WidgetBuilders',
-        (WidgetTester tester) async {
+    testWidgets('.builder works using WidgetBuilders', (
+      WidgetTester tester,
+    ) async {
       tester.view.physicalSize = Size(300, 500);
-      await tester.pumpWidget(wrap(ResponsiveLayout.builder(
-        Breakpoints(
-          xs: (_) => Text('xs'),
-          lg: (_) => Text('lg'),
+      await tester.pumpWidget(
+        wrap(
+          ResponsiveLayout.builder(
+            Breakpoints(xs: (_) => Text('xs'), lg: (_) => Text('lg')),
+          ),
         ),
-      )));
+      );
 
       expect(find.text('xs'), findsOneWidget);
 
@@ -120,17 +188,21 @@ void main() {
 
     testWidgets('.builder can use custom sizes', (WidgetTester tester) async {
       tester.view.physicalSize = Size(500, 500);
-      await tester.pumpWidget(wrap(ResponsiveLayout.builder(
-        Breakpoints(
-          xs: (_) => Text('xs'),
-          lg: (_) => Text('lg'),
-          custom: {
-            700: (_) => Text('700'),
-            800: (_) => Text('800'),
-            1050: (_) => Text('1050'),
-          },
+      await tester.pumpWidget(
+        wrap(
+          ResponsiveLayout.builder(
+            Breakpoints(
+              xs: (_) => Text('xs'),
+              lg: (_) => Text('lg'),
+              custom: {
+                700: (_) => Text('700'),
+                800: (_) => Text('800'),
+                1050: (_) => Text('1050'),
+              },
+            ),
+          ),
         ),
-      )));
+      );
 
       expect(find.text('xs'), findsOneWidget);
 
@@ -191,11 +263,7 @@ void main() {
                 Breakpoints(
                   xs: 'xs',
                   lg: 'lg',
-                  custom: {
-                    700: '700',
-                    800: '800',
-                    1050: '1050',
-                  },
+                  custom: {700: '700', 800: '800', 1050: '1050'},
                 ),
               ),
             ),
@@ -222,16 +290,18 @@ void main() {
       expect(find.text('1050'), findsOneWidget);
     });
 
-    testWidgets('changes rendered widget on vertical axes',
-        (WidgetTester tester) async {
+    testWidgets('changes rendered widget on vertical axes', (
+      WidgetTester tester,
+    ) async {
       tester.view.physicalSize = Size(500, 500);
-      await tester.pumpWidget(wrap(ResponsiveLayout(
-        Breakpoints(
-          xs: Text('xs vertical'),
-          lg: Text('lg vertical'),
+      await tester.pumpWidget(
+        wrap(
+          ResponsiveLayout(
+            Breakpoints(xs: Text('xs vertical'), lg: Text('lg vertical')),
+            axis: Axis.vertical,
+          ),
         ),
-        axis: Axis.vertical,
-      )));
+      );
 
       expect(find.text('xs vertical'), findsOneWidget);
 
@@ -244,8 +314,9 @@ void main() {
   });
 
   group('ResponsiveConstraintLayout', () {
-    testWidgets('changes rendered widget on horizontal axis',
-        (WidgetTester tester) async {
+    testWidgets('changes rendered widget on horizontal axis', (
+      WidgetTester tester,
+    ) async {
       tester.view.physicalSize = Size(500, 500);
 
       final widget = wrap(
@@ -261,9 +332,7 @@ void main() {
                 ),
               ),
             ),
-            Expanded(
-              child: Container(),
-            ),
+            Expanded(child: Container()),
           ],
         ),
       );
@@ -284,8 +353,9 @@ void main() {
       expect(find.text('lg'), findsOneWidget);
     });
 
-    testWidgets('changes rendered widget on vertical axis',
-        (WidgetTester tester) async {
+    testWidgets('changes rendered widget on vertical axis', (
+      WidgetTester tester,
+    ) async {
       tester.view.physicalSize = Size(500, 500);
 
       final widget = wrap(
@@ -302,9 +372,7 @@ void main() {
                 axis: Axis.vertical,
               ),
             ),
-            Expanded(
-              child: Container(),
-            ),
+            Expanded(child: Container()),
           ],
         ),
       );
@@ -335,18 +403,23 @@ void main() {
     };
 
     sizes.forEach((name, width) {
-      testWidgets('MyResponsiveLayout shows $name widget',
-          (WidgetTester tester) async {
+      testWidgets('MyResponsiveLayout shows $name widget', (
+        WidgetTester tester,
+      ) async {
         tester.view.physicalSize = Size(width, 500);
         tester.view.devicePixelRatio = 1;
-        await tester.pumpWidget(wrap(ResponsiveLayout(
-          MyBreakpoints(
-            watch: Text('watch'),
-            phone: Text('phone'),
-            tablet: Text('tablet'),
-            desktop: Text('desktop'),
+        await tester.pumpWidget(
+          wrap(
+            ResponsiveLayout(
+              MyBreakpoints(
+                watch: Text('watch'),
+                phone: Text('phone'),
+                tablet: Text('tablet'),
+                desktop: Text('desktop'),
+              ),
+            ),
           ),
-        )));
+        );
 
         expect(find.text(name), findsOneWidget);
         expect(find.byType(Text), findsOneWidget);
@@ -355,24 +428,27 @@ void main() {
 
     testWidgets('NoZeroBreakpoints throws errors', (WidgetTester tester) async {
       expect(
-          () => NoZeroBreakpoints(
-                watch: Text('watch'),
-                phone: Text('phone'),
-                tablet: Text('tablet'),
-                desktop: Text('desktop'),
-              ),
-          throwsArgumentError);
+        () => NoZeroBreakpoints(
+          watch: Text('watch'),
+          phone: Text('phone'),
+          tablet: Text('tablet'),
+          desktop: Text('desktop'),
+        ),
+        throwsArgumentError,
+      );
     });
 
-    testWidgets('NullSmallestSizeResponsiveLayout throws errors',
-        (WidgetTester tester) async {
+    testWidgets('NullSmallestSizeResponsiveLayout throws errors', (
+      WidgetTester tester,
+    ) async {
       expect(
-          () => NullSmallestBreakpoints(
-                phone: Text('phone'),
-                tablet: Text('tablet'),
-                desktop: Text('desktop'),
-              ),
-          throwsArgumentError);
+        () => NullSmallestBreakpoints(
+          phone: Text('phone'),
+          tablet: Text('tablet'),
+          desktop: Text('desktop'),
+        ),
+        throwsArgumentError,
+      );
     });
   });
 }
@@ -387,12 +463,11 @@ class MyBreakpoints<T> extends BaseBreakpoints<T> {
     T? phone,
     T? tablet,
     T? desktop,
-    Map<int, T>? custom,
+    super.custom,
   }) : super(
-          breakpoints: [0, 200, 600, 900],
-          values: [watch, phone, tablet, desktop],
-          custom: custom,
-        );
+         breakpoints: [0, 200, 600, 900],
+         values: [watch, phone, tablet, desktop],
+       );
 }
 
 class NoZeroBreakpoints<T> extends BaseBreakpoints<T> {
@@ -401,12 +476,11 @@ class NoZeroBreakpoints<T> extends BaseBreakpoints<T> {
     T? phone,
     T? tablet,
     T? desktop,
-    Map<int, T>? custom,
+    super.custom,
   }) : super(
-          breakpoints: [50, 200, 600, 900],
-          values: [watch, phone, tablet, desktop],
-          custom: custom,
-        );
+         breakpoints: [50, 200, 600, 900],
+         values: [watch, phone, tablet, desktop],
+       );
 }
 
 class NullSmallestBreakpoints<T> extends BaseBreakpoints<T> {
@@ -415,10 +489,9 @@ class NullSmallestBreakpoints<T> extends BaseBreakpoints<T> {
     T? phone,
     T? tablet,
     T? desktop,
-    Map<int, T>? custom,
+    super.custom,
   }) : super(
-          breakpoints: [0, 200, 600, 900],
-          values: [watch, phone, tablet, desktop],
-          custom: custom,
-        );
+         breakpoints: [0, 200, 600, 900],
+         values: [watch, phone, tablet, desktop],
+       );
 }

@@ -1,4 +1,4 @@
-library responsive_toolkit;
+library;
 
 export 'breakpoints.dart';
 export 'responsive_layout.dart';

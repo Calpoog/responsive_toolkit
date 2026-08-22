@@ -1,22 +1,16 @@
+import 'dart:collection';
+
 import 'responsive_grid.dart';
 
 /// A set of breakpoints and associated values.
 ///
 /// The xs breakpoint is required.
 class Breakpoints<T> extends BaseBreakpoints<T> {
-  Breakpoints({
-    required T xs,
-    T? sm,
-    T? md,
-    T? lg,
-    T? xl,
-    T? xxl,
-    Map<int, T>? custom,
-  }) : super(
-          breakpoints: [0, 576, 768, 992, 1200, 1400],
-          values: [xs, sm, md, lg, xl, xxl],
-          custom: custom,
-        );
+  Breakpoints({required T xs, T? sm, T? md, T? lg, T? xl, T? xxl, super.custom})
+    : super(
+        breakpoints: const [0, 576, 768, 992, 1200, 1400],
+        values: [xs, sm, md, lg, xl, xxl],
+      );
 }
 
 /// A set of breakpoints and associated values.
@@ -27,78 +21,85 @@ class Breakpoints<T> extends BaseBreakpoints<T> {
 /// Extend this class to create custom breakpoint names and sizes.
 class BaseBreakpoints<T> {
   /// The integer widths at which layout changes will occur.
-  final List<int> breakpoints = [];
+  late final List<int> breakpoints;
 
   /// The values used at each breakpoint.
-  final List<T?> values;
+  late final List<T?> values;
 
   /// Creates a new set of breakpoints and associated values.
   BaseBreakpoints({
     required List<int> breakpoints,
-    required this.values,
+    required List<T?> values,
     Map<int, T>? custom,
   }) {
-    // Check conditions – an extending class could try to break these rules
+    if (breakpoints.isEmpty || values.isEmpty) {
+      throw ArgumentError('Breakpoints and values cannot be empty.');
+    }
+    if (breakpoints.length != values.length) {
+      throw ArgumentError('Breakpoints and values must have the same length.');
+    }
     if (breakpoints.first != 0) {
       throw ArgumentError('The smallest breakpoint width must be 0.');
     }
     if (values.first == null) {
       throw ArgumentError('The smallest breakpoint value cannot be null.');
     }
-
-    _combineCustomBreakpoints(breakpoints, custom);
-  }
-
-  // Combine the custom breakpoints into the existing breakpoint and values
-  // lists
-  _combineCustomBreakpoints(List<int> bps, Map<int, T>? custom) {
-    breakpoints.addAll(bps);
-    if (custom != null) {
-      custom.keys.forEach((size) {
-        for (int i = 0; i < breakpoints.length; i++) {
-          if (size < breakpoints[i]) {
-            breakpoints.insert(i, size);
-            values.insert(i, custom[size]!);
-            return;
-          }
-        }
-        breakpoints.add(size);
-        values.add(custom[size]!);
-      });
-    }
-
-    if (values.first is Composable<T>) {
-      for (int i = breakpoints.length - 1; i >= 0; i--) {
-        if (values[i] != null) {
-          values[i] = (values[i] as Composable<T>).compose(
-            values
-                .sublist(0, i)
-                .where((value) => value != null)
-                .map((e) => e!)
-                .toList(),
-          );
-        }
+    for (var index = 1; index < breakpoints.length; index++) {
+      if (breakpoints[index] <= breakpoints[index - 1]) {
+        throw ArgumentError('Breakpoint widths must be strictly increasing.');
       }
     }
+
+    final combined = <int, T?>{
+      for (var index = 0; index < breakpoints.length; index++)
+        breakpoints[index]: values[index],
+    };
+    if (custom != null) {
+      for (final entry in custom.entries) {
+        if (entry.key < 0) {
+          throw ArgumentError.value(
+            entry.key,
+            'custom',
+            'Breakpoint widths cannot be negative.',
+          );
+        }
+        combined[entry.key] = entry.value;
+      }
+    }
+
+    final widths = combined.keys.toList()..sort();
+    final composedValues = widths.map((width) => combined[width]).toList();
+    for (var index = 0; index < composedValues.length; index++) {
+      final value = composedValues[index];
+      if (value is Composable<T>) {
+        composedValues[index] = value.compose(
+          composedValues.take(index).whereType<T>().toList(growable: false),
+        );
+      }
+    }
+
+    this.breakpoints = UnmodifiableListView(widths);
+    this.values = UnmodifiableListView(composedValues);
   }
 
   /// Returns a new [BaseBreakpoints] with its [values] mapped to a new type.
   BaseBreakpoints<V> map<V>(V Function(T?) f) {
-    return BaseBreakpoints(
+    return BaseBreakpoints<V>(
       breakpoints: breakpoints,
-      values: values.map<V>((v) => f(v)).toList(),
+      values: values.map(f).toList(growable: false),
     );
   }
 
   /// Chooses a value based on which of [breakpoints] is satisfied by [width].
   T choose(double width) {
-    for (int i = breakpoints.length - 1; i >= 0; i--) {
-      if (width >= breakpoints[i] && values[i] != null) {
-        // It's been checked above that the value is non-null
-        return values[i]!;
+    if (width.isNaN) {
+      throw ArgumentError.value(width, 'width', 'Width cannot be NaN.');
+    }
+    for (var index = breakpoints.length - 1; index >= 0; index--) {
+      if (width >= breakpoints[index] && values[index] != null) {
+        return values[index] as T;
       }
     }
-    // it is enforced that the smallest breakpoint Widget/value must be provided
-    return values[0]!;
+    return values.first as T;
   }
 }
