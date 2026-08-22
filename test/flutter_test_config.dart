@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:alchemist/alchemist.dart';
 import 'package:flutter/material.dart';
 
 Future<void> testExecutable(FutureOr<void> Function() testMain) async {
+  final isGitHubActions = Platform.environment.containsKey('GITHUB_ACTIONS');
+
   return AlchemistConfig.runWithConfig(
     config: AlchemistConfig(
       theme: ThemeData(
@@ -30,8 +33,8 @@ Future<void> testExecutable(FutureOr<void> Function() testMain) async {
         ),
         padding: const EdgeInsets.all(8),
       ),
-      platformGoldensConfig: const PlatformGoldensConfig(
-        enabled: true,
+      platformGoldensConfig: PlatformGoldensConfig(
+        enabled: !isGitHubActions,
         obscureText: false,
       ),
       ciGoldensConfig: const CiGoldensConfig(
