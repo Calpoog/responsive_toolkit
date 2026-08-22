@@ -33,6 +33,10 @@ pubspec.lock
 build/
 doc/
 **/failures/*.png
+**/goldens/macos/*.png
+**/goldens/linux/*.png
+**/goldens/windows/*.png
+!**/goldens/ci/*.png
 
 # Android related
 **/android/**/gradle-wrapper.jar

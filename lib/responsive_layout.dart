@@ -6,11 +6,11 @@ import 'breakpoints.dart';
 ///
 /// The default screen axis is horizontal (screen width). The displayed Widget
 /// is chosen based on the greatest provided breakpoint that satisfies
-/// `current screen [axis] size > breakpoint`
+/// `current screen [axis] size >= breakpoint`
 ///
 /// The default breakpoints are:
 /// * xs:  < 576
-/// * sm:  >= 578
+/// * sm:  >= 576
 /// * md:  >= 768
 /// * lg:  >= 992
 /// * xl:  >= 1200
@@ -52,16 +52,17 @@ class ResponsiveLayout extends StatelessWidget {
   ResponsiveLayout(
     BaseBreakpoints<Widget> breakpoints, {
     this.axis = Axis.horizontal,
-    Key? key,
+    super.key,
   }) : _breakpoints = breakpoints.map(
-            (widget) => widget == null ? null : (BuildContext _) => widget);
+         (widget) => widget == null ? null : (BuildContext _) => widget,
+       );
 
   /// Creates a Widget that chooses another Widget to display based on the
   /// screen size using a WidgetBuilder.
-  ResponsiveLayout.builder(
+  const ResponsiveLayout.builder(
     BaseBreakpoints<WidgetBuilder?> breakpoints, {
     this.axis = Axis.horizontal,
-    Key? key,
+    super.key,
   }) : _breakpoints = breakpoints;
 
   static T value<T>(
@@ -69,7 +70,7 @@ class ResponsiveLayout extends StatelessWidget {
     BaseBreakpoints<T?> breakpoints, {
     Axis axis = Axis.horizontal,
   }) {
-    final Size size = MediaQuery.of(context).size;
+    final Size size = MediaQuery.sizeOf(context);
     return breakpoints.choose(
       axis == Axis.horizontal ? size.width : size.height,
     )!;
@@ -77,7 +78,7 @@ class ResponsiveLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Size size = MediaQuery.of(context).size;
+    final Size size = MediaQuery.sizeOf(context);
     return _breakpoints.choose(
       axis == Axis.horizontal ? size.width : size.height,
     )!(context);
@@ -89,11 +90,11 @@ class ResponsiveLayout extends StatelessWidget {
 ///
 /// The default screen axis is horizontal (screen width). The displayed Widget
 /// is chosen based on the greatest provided breakpoint that satisfies
-/// `current constraint max width/height > breakpoint`
+/// `current constraint max width/height >= breakpoint`
 ///
 /// The default breakpoints are:
 /// * xs:  < 576
-/// * sm:  >= 578
+/// * sm:  >= 576
 /// * md:  >= 768
 /// * lg:  >= 992
 /// * xl:  >= 1200
@@ -130,19 +131,15 @@ class ResponsiveLayout extends StatelessWidget {
 class ResponsiveConstraintLayout extends ResponsiveLayout {
   /// Creates a Widget that chooses another Widget to display based on
   /// constraint breakpoints.
-  ResponsiveConstraintLayout(
-    BaseBreakpoints<Widget> breakpoints, {
-    Axis axis = Axis.horizontal,
-    Key? key,
-  }) : super(breakpoints, axis: axis, key: key);
+  ResponsiveConstraintLayout(super.breakpoints, {super.axis, super.key});
 
   /// Creates a Widget that chooses another Widget to display based on
   /// constraint breakpoints using a WidgetBuilder.
-  ResponsiveConstraintLayout.builder(
-    BaseBreakpoints<WidgetBuilder?> breakpoints, {
-    Axis axis = Axis.horizontal,
-    Key? key,
-  }) : super.builder(breakpoints, axis: axis, key: key);
+  const ResponsiveConstraintLayout.builder(
+    super.breakpoints, {
+    super.axis,
+    super.key,
+  }) : super.builder();
 
   @override
   Widget build(BuildContext context) {

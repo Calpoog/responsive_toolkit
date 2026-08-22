@@ -1,3 +1,11 @@
+## 1.0.0
+
+- Updated the minimum supported versions to Flutter 3.44 and Dart 3.12
+- Corrected responsive row dry layout, wrapping, fill sizing, clipping, and constraint breakpoint behavior
+- Added immutable validated breakpoints and deterministic custom breakpoint replacement
+- Updated widget keys, MediaQuery usage, and FluidText text scaling APIs
+- Added modern lint configuration and expanded correctness tests
+
 ## 0.0.6
 
 - Removed internal use of `LayoutBuilder`

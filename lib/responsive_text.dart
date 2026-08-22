@@ -21,15 +21,18 @@ class FluidText extends Text {
     super.locale,
     super.softWrap,
     super.overflow,
-    super.textScaleFactor,
+    super.textScaler,
     super.maxLines,
     super.semanticsLabel,
     super.textWidthBasis,
     super.textHeightBehavior,
-  }) : _style = style ?? TextStyle();
+    super.selectionColor,
+  }) : _style = style ?? const TextStyle() {
+    _validateRange(minWidth, maxWidth, minFontSize, maxFontSize);
+  }
 
   FluidText.rich(
-    InlineSpan textSpan, {
+    super.textSpan, {
     required this.minWidth,
     required this.maxWidth,
     required this.minFontSize,
@@ -42,24 +45,50 @@ class FluidText extends Text {
     super.locale,
     super.softWrap,
     super.overflow,
-    super.textScaleFactor,
+    super.textScaler,
     super.maxLines,
     super.semanticsLabel,
     super.textWidthBasis,
     super.textHeightBehavior,
-  })  : _style = style ?? TextStyle(),
-        super.rich(textSpan);
+    super.selectionColor,
+  }) : _style = style ?? const TextStyle(),
+       super.rich() {
+    _validateRange(minWidth, maxWidth, minFontSize, maxFontSize);
+  }
+
+  static void _validateRange(
+    int minWidth,
+    int maxWidth,
+    double minFontSize,
+    double maxFontSize,
+  ) {
+    if (minWidth < 0 || maxWidth <= minWidth) {
+      throw ArgumentError(
+        'maxWidth must be greater than non-negative minWidth.',
+      );
+    }
+    if (!minFontSize.isFinite ||
+        !maxFontSize.isFinite ||
+        minFontSize < 0 ||
+        maxFontSize < minFontSize) {
+      throw ArgumentError(
+        'Font sizes must be finite, non-negative, and ordered.',
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
+    final width = MediaQuery.sizeOf(context).width;
+    final progress = ((width - minWidth) / (maxWidth - minWidth)).clamp(
+      0.0,
+      1.0,
+    );
+    final fontSize = minFontSize + (maxFontSize - minFontSize) * progress;
 
     return DefaultTextStyle.merge(
-      style: _style.merge(TextStyle(
-          fontSize: minFontSize +
-              (maxFontSize - minFontSize) *
-                  ((width - minWidth) / (maxWidth - minWidth)).clamp(0, 1))),
-      child: Builder(builder: (context) => super.build(context)),
+      style: _style.merge(TextStyle(fontSize: fontSize)),
+      child: Builder(builder: super.build),
     );
   }
 }
